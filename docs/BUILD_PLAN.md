@@ -32,10 +32,10 @@ The MVP you can use every day is ready after **Phase 7**.
 - Pin dependency versions and record them in DECISIONS.md.
 
 **Done when**
-- [ ] `make dev` runs both servers, and the UI shell shows the health status from the API.
-- [ ] `make test` and `make lint` pass.
-- [ ] After `make build`, uvicorn alone serves the UI on :8000, and deep links like `/reports` load.
-- [ ] There are no Docker-related files anywhere in the repo.
+- [x] `make dev` runs both servers, and the UI shell shows the health status from the API.
+- [x] `make test` and `make lint` pass.
+- [x] After `make build`, uvicorn alone serves the UI on :8000, and deep links like `/reports` load.
+- [x] There are no Docker-related files anywhere in the repo.
 
 ## Phase 1 — Auth, users, settings
 - Tables: users and sessions. argon2id hashing.
