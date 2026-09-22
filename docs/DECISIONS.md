@@ -126,3 +126,41 @@ acceptable trade for a household app with no extra services.
 It is a credential, and the settings endpoint is read far more often than it is written.
 → `SettingsUpdate` accepts `ntfy_token`; `SettingsOut` does not return it. The UI shows whether one is
 set, never its value (Phase 9).
+
+## D-025 A business day is Monday to Friday (Phase 2, 2026-09-22)
+SPEC §2 asks for previous/next business day but names no holiday calendar, and a real one means a new
+dependency plus a country choice the spec never makes.
+→ Weekends only. A pay date on a public holiday is left alone. If holidays ever matter, they go in as a
+table of dates, not a library.
+
+## D-026 The weekend rule is skipped when it would reorder pay dates
+Semimonthly days that sit next to each other (the 1st and 2nd, say) can both shift onto the same Friday,
+which would make a zero-length or backwards period.
+→ A shifted date that lands on or before the previous pay date keeps its configured date instead. The
+preview reports every date where this happened, so the schedule is never silently different from what
+was asked for.
+
+## D-027 Two configured days clamping onto one date make one pay date
+Semimonthly on the 30th and 31st produces two identical dates every February.
+→ The duplicate is dropped, so that month has a single pay date and a single period. Periods stay
+contiguous and are never zero days long.
+
+## D-028 Pay dates are computed from the schedule, never from the previous date
+Stepping month by month from the last clamped date would drag the 31st down to the 28th and leave it
+there for good.
+→ Each date is derived from the configuration and its own month, so Feb 28 is followed by Mar 31
+(SPEC §2: dates never drift). Generation always starts from the schedule's own effective date, which
+makes the sequence identical no matter how many dates are requested.
+
+## D-029 A schedule change may reach back into the period in progress
+SPEC §2 describes exactly this: the period in progress ends the day before the new first pay date and is
+flagged as a transition.
+→ An effective date on or before the current period's *start* is refused with 409
+`effective_from_too_early`, since that would rewrite a period that has already begun. Anything later is
+accepted. Periods from the new first pay date onwards are deleted and rebuilt; transactions reference
+periods by date, not by foreign key, so nothing is orphaned.
+
+## D-030 The timeline is extended lazily on read
+SPEC §2 wants roughly 13 months of periods, kept topped up, and Phase 9 adds the daily job.
+→ `ensure_horizon()` runs when periods are listed and extends them when the timeline comes within
+120 days of running out. The daily job will call the same function, so there is one code path.

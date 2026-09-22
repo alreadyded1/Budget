@@ -1,17 +1,17 @@
 # Progress
 
-**Current phase:** Phase 2 — Pay schedule engine (not started)
-**Next step:** Plan Phase 2 per docs/BUILD_PLAN.md — the `pay_schedules` and `pay_periods` tables, the pure
-functions in `app/domain/pay_periods.py` (pay dates per frequency, month-end clamp, weekend rules,
-contiguous period building, `period_for_date`), the schedule-change service, the preview/commit endpoints,
-and Settings → Pay schedule with its live 6-period preview.
+**Current phase:** Phase 3 — Accounts, categories, payees (not started)
+**Next step:** Plan Phase 3 per docs/BUILD_PLAN.md — account CRUD with close/reopen, debt fields and
+valuation mode; category groups and categories with keyboard reorder, hide, sinking-fund flag and delete
+with reassignment; payees with nocase-unique names, inline rename, merge, pinned default category and
+usage stats; plus `pb seed-categories` and the first-run starter set.
 
 ## Phase status
 | # | Phase | Status | Finished |
 |---|---|---|---|
 | 0 | Scaffold and tooling | ✅ done | 2026-09-22 |
 | 1 | Auth, users, settings | ✅ done * | 2026-09-22 |
-| 2 | Pay schedule engine | ⬜ | |
+| 2 | Pay schedule engine | ✅ done | 2026-09-22 |
 | 3 | Accounts, categories, payees | ⬜ | |
 | 4 | Transactions backend | ⬜ | |
 | 5 | Ledger UI and fast entry | ⬜ | |
@@ -41,6 +41,41 @@ check could run. The server side of it is verified (see the session log below).
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-22 — Phase 2 (Pay schedule engine)
+- **Done:**
+  - Migration `0003` adds `pay_schedules` and `pay_periods`, with CHECK constraints on the frequency and
+    weekend-rule enums, a unique `effective_from`, a unique `start_date`, and the `(start_date, end_date)`
+    index.
+  - `app/domain/pay_periods.py` is pure: no database, no clock. Pay dates per frequency, the month-end
+    clamp, the weekend rules, contiguous period building, `period_for_date`, and `pay_dates_through`.
+    Dates are computed from the configuration rather than from the previous date, so nothing drifts
+    (D-028).
+  - Service: generates ~13 months ahead, extends lazily once the timeline comes within 120 days of its
+    end (D-030), and applies a change by keeping past periods, ending the period in progress the day
+    before the new first pay date, flagging it as a transition, and rebuilding everything after it.
+  - Endpoints: `GET /pay-schedule` (current + history), `POST /pay-schedule/preview` (writes nothing),
+    `POST /pay-schedule`, `GET /pay-periods?from=&to=`, `GET /pay-periods/current`.
+  - UI: Settings gains Pay schedule (form with a live six-period preview, transition warning, and
+    schedule history) and Pay periods (the full timeline with transition and current markers).
+  - Tests: 38 domain, 15 API, 10 frontend. All five "Done when" cases are covered, including the property
+    test that walks three years a day at a time for seven different schedules.
+- **Deviations from plan:**
+  - Two rules the spec left open were decided with the user: skip a weekend shift that would reorder pay
+    dates (D-026), and allow a change to reach back into the period in progress but no further (D-029).
+  - Found while testing: semimonthly on the 30th and 31st produces two identical dates every February.
+    The duplicate is now dropped so the month has one pay date (D-027). Nothing in the spec covers it.
+  - "Business day" is Monday to Friday with no holiday calendar (D-025).
+  - The Pay period history lives as a Settings tab rather than a sidebar entry, so the nine sidebar items
+    from Phase 0 stay as specified.
+- **Known issues:**
+  - The browser click-through is still unverified — the Chrome extension stayed disconnected for this
+    session too. Verified over HTTP instead against the built SPA: preview, commit, current period, and a
+    mid-period change from biweekly to monthly-on-the-1st, which produced a 6-day transition period and a
+    contiguous timeline, with 2026-11-01 (a Sunday) correctly paid on 2026-10-30.
+  - `ensure_horizon()` only runs when periods are listed. Until the Phase 9 daily job calls it, a household
+    that never opens the pay-periods screen could let the timeline age.
+- **Next step:** Plan Phase 3 (accounts, categories, payees).
 
 ### 2026-09-22 — Phase 1 (Auth, users, settings)
 - **Done:**
@@ -118,6 +153,8 @@ check could run. The server side of it is verified (see the session log below).
 - Testing Library component tests for tab order and the entry row — Phase 5.
 - `deploy/` scripts and systemd units — Phase 7.
 - Expired-session sweep inside `pb run-daily` — Phase 9.
+- `ensure_horizon()` should also run from the daily job so the timeline never ages — Phase 9.
+- Prorating planned amounts across a transition period — Phase 6 (budget planner).
 - ntfy settings UI and the runtime HTTP client choice — Phase 9.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
 - First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.

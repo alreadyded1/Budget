@@ -74,11 +74,11 @@ The MVP you can use every day is ready after **Phase 7**.
 - UI: Settings → Pay schedule with a live preview of the next 6 periods, and a Pay period history page.
 
 **Done when**
-- [ ] Monthly on the 31st gives Jan 31, Feb 28 (29 in leap years), Mar 31, Apr 30.
-- [ ] Semimonthly 15 & 31 clamps correctly. Weekend rules shift the dates correctly.
-- [ ] Biweekly across a year boundary produces the correct count (26 or 27 per year).
-- [ ] A schedule change mid-period leaves the timeline contiguous and flags the transition period.
-- [ ] Property test: every date in a 3-year span maps to exactly one period.
+- [x] Monthly on the 31st gives Jan 31, Feb 28 (29 in leap years), Mar 31, Apr 30.
+- [x] Semimonthly 15 & 31 clamps correctly. Weekend rules shift the dates correctly.
+- [x] Biweekly across a year boundary produces the correct count (26 or 27 per year).
+- [x] A schedule change mid-period leaves the timeline contiguous and flags the transition period.
+- [x] Property test: every date in a 3-year span maps to exactly one period.
 
 ## Phase 3 — Accounts, categories, payees
 - CRUD for accounts, including close/reopen, debt fields, and valuation mode.

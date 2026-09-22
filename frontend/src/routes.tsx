@@ -12,6 +12,8 @@ import { LedgerPage } from './features/ledger/LedgerPage'
 import { PayeesPage } from './features/payees/PayeesPage'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { GeneralSettingsPage } from './features/settings/GeneralSettingsPage'
+import { PayPeriodsPage } from './features/settings/PayPeriodsPage'
+import { PayScheduleSettingsPage } from './features/settings/PayScheduleSettingsPage'
 import { SettingsLayout } from './features/settings/SettingsLayout'
 import { UsersSettingsPage } from './features/settings/UsersSettingsPage'
 import { SubscriptionsPage } from './features/subscriptions/SubscriptionsPage'
@@ -37,6 +39,8 @@ export function AppRoutes() {
         <Route path="payees" element={<PayeesPage />} />
         <Route path="settings" element={<SettingsLayout />}>
           <Route index element={<GeneralSettingsPage />} />
+          <Route path="pay-schedule" element={<PayScheduleSettingsPage />} />
+          <Route path="pay-periods" element={<PayPeriodsPage />} />
           <Route path="users" element={<UsersSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />

@@ -2,6 +2,8 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 const TABS = [
   { to: '/settings', label: 'General', end: true },
+  { to: '/settings/pay-schedule', label: 'Pay schedule' },
+  { to: '/settings/pay-periods', label: 'Pay periods' },
   { to: '/settings/users', label: 'Users' },
 ]
 

@@ -5,4 +5,8 @@ export const queryKeys = {
   session: ['session'] as const,
   users: ['users'] as const,
   settings: ['settings'] as const,
+  paySchedule: ['pay-schedule'] as const,
+  paySchedulePreview: ['pay-schedule', 'preview'] as const,
+  payPeriods: ['pay-periods'] as const,
+  currentPeriod: ['pay-periods', 'current'] as const,
 }
