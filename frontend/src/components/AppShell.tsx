@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
+import { UserMenu } from '../features/auth/UserMenu'
 import { HealthBadge } from './HealthBadge'
 
 const NAV = [
@@ -40,7 +41,10 @@ export function AppShell() {
           ))}
         </nav>
         <div className="border-t border-slate-200 px-2 pt-3 dark:border-slate-800">
-          <HealthBadge />
+          <UserMenu />
+          <div className="mt-2">
+            <HealthBadge />
+          </div>
         </div>
       </aside>
       <main className="flex-1 overflow-auto p-6">

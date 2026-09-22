@@ -85,3 +85,44 @@ Tailwind v4 needs neither `tailwind.config.js` nor a PostCSS pipeline.
 ## D-017 Placeholder routes exist from Phase 0
 All nine sidebar pages render a "Arrives in Phase N" placeholder.
 → Navigation, the SPA fallback, and deep links are verifiable before any feature exists.
+
+## D-018 argon2-cffi for password hashing (Phase 1, 2026-09-22)
+ARCHITECTURE.md calls for argon2id and argon2-cffi is its reference implementation.
+→ `argon2-cffi==25.1.0`, library defaults (argon2id), with `check_needs_rehash` on every successful login
+so parameter upgrades land transparently.
+
+## D-019 Password policy is length only: 12 characters
+Composition rules push people toward `Password1!`; length is what actually helps, and current NIST guidance
+agrees.
+→ 12-character minimum, 256-character maximum, no character-class rules, a short list of obvious strings
+rejected, and leading/trailing whitespace refused. Enforced in `app/domain/passwords.py`, so the API,
+the CLI, and the UI all get the same answer.
+
+## D-020 Two guard rails on disabling users
+SPEC §17 gives every user full access, which makes it possible to disable every account and lock the
+household out of its own app.
+→ You cannot disable your own account (`cannot_disable_self`), and the last active account cannot be
+disabled (`cannot_disable_last_user`). Both return 409. Recovery without these would mean shell access
+to the LXC.
+
+## D-021 Routes are protected by default
+Forgetting an auth dependency on a new router is a silent hole, and there will be a dozen more routers.
+→ `api/v1/__init__.py` mounts health and auth publicly, then mounts everything else under a router
+carrying `Depends(authenticated)`, which checks the session and the `X-PB-Request` header together.
+A new router is protected by being added to the protected group.
+
+## D-022 Losing access ends existing sessions
+A disable or a password reset that leaves live cookies working is not really a disable or a reset.
+→ Disabling a user and resetting someone else's password both delete that user's session rows. Resetting
+your own password keeps you signed in, since you just proved who you are.
+
+## D-023 Login failures are tracked in memory
+Per D-002 and the single-worker rule there is exactly one process, so a dict outlives any request.
+→ `app/domain/rate_limit.py` holds a pure `FailureTracker` with an injected clock (tests never sleep),
+counting failures per username *and* per IP, 5 per 15 minutes. A restart forgives everyone, which is an
+acceptable trade for a household app with no extra services.
+
+## D-024 The ntfy token is write-only over the API
+It is a credential, and the settings endpoint is read far more often than it is written.
+→ `SettingsUpdate` accepts `ntfy_token`; `SettingsOut` does not return it. The UI shows whether one is
+set, never its value (Phase 9).

@@ -2,4 +2,7 @@
 
 export const queryKeys = {
   health: ['health'] as const,
+  session: ['session'] as const,
+  users: ['users'] as const,
+  settings: ['settings'] as const,
 }

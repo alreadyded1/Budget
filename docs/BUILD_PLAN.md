@@ -51,7 +51,7 @@ The MVP you can use every day is ready after **Phase 7**.
   - Settings → General page
 
 **Done when**
-- [ ] Tests cover login success and failure, lockout after 5 failures, 401 on protected routes, CSRF header
+- [x] Tests cover login success and failure, lockout after 5 failures, 401 on protected routes, CSRF header
       rejection, and session expiry.
 - [ ] A user created with the CLI can log in through the UI. Logging out clears the session server-side.
 
