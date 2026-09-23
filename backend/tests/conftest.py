@@ -80,3 +80,28 @@ def auth_client(client, user) -> TestClient:
     )
     assert response.status_code == 200
     return client
+
+
+@pytest.fixture(autouse=True)
+def _restore_registries() -> Iterator[None]:
+    """Keep a test's stub handlers from leaking into the next one.
+
+    The real transaction handlers are registered once at import (app/services/__init__.py).
+    A test that registers a stub under the same name would otherwise remove the real one
+    on the way out, and every later test would silently lose it.
+    """
+    from app.services import payees as payees_service
+    from app.services import references
+
+    registries = (
+        references._payee_reassigners,
+        references._category_reassigners,
+        references._category_counters,
+    )
+    snapshots = [dict(registry) for registry in registries]
+    provider = payees_service._usage_provider
+    yield
+    for registry, snapshot in zip(registries, snapshots, strict=True):
+        registry.clear()
+        registry.update(snapshot)
+    payees_service.set_usage_provider(provider)

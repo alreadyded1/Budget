@@ -13,6 +13,7 @@ from app.models.category import GROUP_KINDS, Category, CategoryGroup
 from app.models.pay_schedule import PayPeriod, PaySchedule
 from app.models.payee import Payee
 from app.models.settings import SETTINGS_ID, Settings
+from app.models.transaction import STATUSES, Transaction, TransactionSplit
 from app.models.user import Session, User
 
 __all__ = [
@@ -21,6 +22,7 @@ __all__ = [
     "GROUP_KINDS",
     "LIABILITY_TYPES",
     "SETTINGS_ID",
+    "STATUSES",
     "VALUATION_MODES",
     "Account",
     "AccountValuation",
@@ -33,6 +35,8 @@ __all__ = [
     "Session",
     "Settings",
     "TimestampMixin",
+    "Transaction",
+    "TransactionSplit",
     "User",
     "utcnow",
 ]

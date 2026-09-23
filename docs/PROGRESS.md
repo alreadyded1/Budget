@@ -1,11 +1,10 @@
 # Progress
 
-**Current phase:** Phase 4 — Transactions backend (not started)
-**Next step:** Plan Phase 4 per docs/BUILD_PLAN.md — transaction, split and transfer services with
-split-sum validation and paired transfers; the balances service (current, cleared, reconciled, as-of);
-the ledger query with running balance, cursor pagination and filters; bulk operations; mutation responses
-that carry updated balances; and 409 on editing a reconciled transaction without confirm=true.
-Register the payee and category reassigners from D-031, and the payee usage provider from D-032.
+**Current phase:** Phase 5 — Ledger UI and fast entry (not started)
+**Next step:** Plan Phase 5 per docs/BUILD_PLAN.md — the ledger screen: columns per SPEC §7, the pinned
+new-entry row, the tab order and Enter/Esc behaviour, DateInput / AmountInput / Combobox keyboard
+primitives, optimistic insert with running-balance recalculation and rollback on error, and the Playwright
+setup that proves no document navigation happens.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -14,7 +13,7 @@ Register the payee and category reassigners from D-031, and the payee usage prov
 | 1 | Auth, users, settings | ✅ done * | 2026-09-22 |
 | 2 | Pay schedule engine | ✅ done | 2026-09-22 |
 | 3 | Accounts, categories, payees | ✅ done † | 2026-09-23 |
-| 4 | Transactions backend | ⬜ | |
+| 4 | Transactions backend | ✅ done | 2026-09-23 |
 | 5 | Ledger UI and fast entry | ⬜ | |
 | 6 | Budget planner and dashboard | ⬜ | |
 | 7 | Deploy MVP to LXC | ⬜ | |
@@ -35,8 +34,9 @@ browser click-through of CLI user → login form → signed in. The browser tool
 check could run. The server side of it is verified (see the session log below).
 
 † Phase 3 is built, but one "Done when" box cannot be closed from inside Phase 3: "merging moves
-transactions, subscriptions, and rules" needs tables that Phases 4, 8 and 10 add. The merge mechanism and
-its registry are tested now; each of those phases registers a handler and ticks its share.
+transactions, subscriptions, and rules" needs tables that Phases 4, 8 and 10 add. Phase 4 has since
+registered transactions and proved that part; the box closes when subscriptions (Phase 8) and rules
+(Phase 10) register theirs.
 
 ## Session log
 <!-- Newest first. Copy this block for each session.
@@ -46,6 +46,54 @@ its registry are tested now; each of those phases registers a handler and ticks 
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-23 — Phase 4 (Transactions backend)
+- **Done:**
+  - Migration `0005` adds `transactions` and `transaction_splits`, with the status CHECK, the
+    `(account_id, date)`, `(date)` and `(transfer_id)` indexes, and cascade delete from a transaction to
+    its splits.
+  - `app/domain/money.py` mirrors `frontend/src/lib/money.ts`: same round-half-away-from-zero rule, same
+    test cases, plus accounting parentheses for the CSV import in Phase 10.
+  - Transactions and splits: one split for a plain transaction, several for a split one, and
+    `SUM(splits) == amount_cents` enforced on every write. A zero split is refused. Changing the amount of
+    a single-split transaction carries its split with it.
+  - Transfers: one call writes both legs with a shared `transfer_id` (D-041). Editing either leg moves
+    both; deleting either deletes both. The on-budget rule decides which leg carries a split (D-042).
+  - Balances: current, cleared, reconciled and as-of a date, straight from the sign convention, so
+    liability balances come out negative without a special case. Manual-valuation accounts use their
+    typed balance instead (D-040).
+  - Ledger: cursor pagination on `(date, id)`, filters for account, date range, payee, category, status,
+    amount range, free text and uncategorized, a running balance for single-account views (D-038), and a
+    filtered total.
+  - Bulk set-status, set-category (collapsing splits) and delete, the last handling a selection that
+    contains both legs of a transfer without double-counting.
+  - Every mutation response carries the balances it changed, so the UI will not need a refetch.
+  - The Phase 3 registries have real implementations now: payee merge moves transactions, category delete
+    moves splits, and payee usage stats are a real query (D-043).
+  - Endpoints: `GET|POST /transactions`, `GET|PATCH|DELETE /transactions/{id}`, `POST /transfers`,
+    `POST /transactions/bulk/{status,category,delete}`, `GET /balances`,
+    `GET /accounts/{id}/balance?as_of=`.
+  - Tests: 234 backend (25 transactions, 19 ledger, 7 reassignment, 25 money), 30 frontend.
+- **Deviations from plan:**
+  - Reconciled protection covers amount, date, account and delete, not every field — SPEC §6's narrow
+    list, confirmed with the user (D-039). A memo or category fix needs no confirmation.
+  - Five columns DATA_MODEL lists on `transactions` are deferred to the phases that create the tables
+    they point at (D-044).
+  - `net_worth()` was written into the balances service and then removed: it belongs to Phase 14.
+  - Found while running the full suite: `tests/api/test_payees.py` registered stub handlers under the
+    real names "transactions", "subscriptions" and "rules", then popped them on the way out — removing
+    the genuine transactions handler for every test that ran afterwards. Two tests passed alone and
+    failed together. The conftest now snapshots and restores the registries around every test (D-043).
+  - Pydantic would not accept `date: date` inside a model whose field is also called `date`; the
+    schemas use `datetime.date` explicitly.
+- **Known issues:**
+  - The Phase 3 box "merging moves transactions, subscriptions, and rules" is now two-thirds open:
+    transactions are proven, subscriptions and rules wait for Phases 8 and 10.
+  - No UI this phase — the ledger screen is Phase 5. The Accounts page still shows opening balances
+    rather than the real ones, which Phase 5 wires up.
+  - `GET /balances` walks every account one at a time. Fine for a household; worth a single grouped
+    query if an account list ever gets long.
+- **Next step:** Plan Phase 5 (ledger UI and fast entry) — the core screen.
 
 ### 2026-09-23 — Phase 3 (Accounts, categories, payees)
 - **Done:**
@@ -204,9 +252,10 @@ its registry are tested now; each of those phases registers a handler and ticks 
 - Expired-session sweep inside `pb run-daily` — Phase 9.
 - `ensure_horizon()` should also run from the daily job so the timeline never ages — Phase 9.
 - Prorating planned amounts across a transition period — Phase 6 (budget planner).
-- Register transactions, subscriptions and rules with `app/services/references.py` — Phases 4, 8, 10.
-- Replace the payee usage provider with a real query — Phase 4.
-- `app/domain/money.py` mirroring `frontend/src/lib/money.ts`, same test cases — Phase 4.
+- Register subscriptions and rules with `app/services/references.py` — Phases 8 and 10 (transactions done).
+- Group `GET /balances` into one query if the account list ever grows — Phase 16.
+- Transaction columns deferred to their own phases: subscription_occurrence_id (8), import_batch_id and
+  import_key (10), reconciliation_id (11).
 - ntfy settings UI and the runtime HTTP client choice — Phase 9.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
 - First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.

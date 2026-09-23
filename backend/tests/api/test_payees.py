@@ -120,17 +120,13 @@ def test_merging_moves_every_registered_reference(auth_client):
             table,
             lambda db, s, t, table=table: calls.append((table, s, t)) or 2,
         )
-    try:
-        result = auth_client.post(
-            f"{PAYEES}/{target['id']}/merge", json={"source_id": source["id"]}, headers=HEADERS
-        ).json()
+    result = auth_client.post(
+        f"{PAYEES}/{target['id']}/merge", json={"source_id": source["id"]}, headers=HEADERS
+    ).json()
 
-        assert result["moved"] == {"transactions": 2, "subscriptions": 2, "rules": 2}
-        assert sorted(call[0] for call in calls) == ["rules", "subscriptions", "transactions"]
-        assert all(call[1] == source["id"] and call[2] == target["id"] for call in calls)
-    finally:
-        for table in ("transactions", "subscriptions", "rules"):
-            references._payee_reassigners.pop(table, None)
+    assert result["moved"] == {"transactions": 2, "subscriptions": 2, "rules": 2}
+    assert sorted(call[0] for call in calls) == ["rules", "subscriptions", "transactions"]
+    assert all(call[1] == source["id"] and call[2] == target["id"] for call in calls)
 
 
 def test_merging_keeps_the_pinned_default_category(auth_client, category):

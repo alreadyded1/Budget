@@ -131,19 +131,15 @@ def test_a_category_in_use_needs_a_reassignment_target(auth_client, group):
     references.register_category_reassigner(
         "fake", lambda db, source, target: moved_rows.append((source, target)) or 3
     )
-    try:
-        refused = auth_client.delete(f"{CATEGORIES}/{doomed['id']}", headers=HEADERS)
-        assert refused.status_code == 409
-        assert refused.json()["code"] == "category_in_use"
+    refused = auth_client.delete(f"{CATEGORIES}/{doomed['id']}", headers=HEADERS)
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "category_in_use"
 
-        accepted = auth_client.delete(
-            f"{CATEGORIES}/{doomed['id']}?reassign_to={keep['id']}", headers=HEADERS
-        )
-        assert accepted.status_code == 204
-        assert moved_rows == [(doomed["id"], keep["id"])]
-    finally:
-        references._category_counters.pop("fake", None)
-        references._category_reassigners.pop("fake", None)
+    accepted = auth_client.delete(
+        f"{CATEGORIES}/{doomed['id']}?reassign_to={keep['id']}", headers=HEADERS
+    )
+    assert accepted.status_code == 204
+    assert moved_rows == [(doomed["id"], keep["id"])]
 
 
 def test_a_group_with_categories_cannot_be_deleted(auth_client, group):

@@ -204,3 +204,50 @@ integer-cents rule exists to prevent.
 → `frontend/src/lib/money.ts` parses the digit string itself and rounds on the third decimal place.
 `roundToCents()` re-reads its product at 15 significant digits before rounding, for callers that already
 hold a number. `app/domain/money.py` gets the mirrored version and the same test cases in Phase 4.
+
+## D-038 A running balance is only shown for one account in date order (Phase 4, 2026-09-23)
+A running balance answers "what was in the account after this row", which needs every earlier row in that
+account. Across several accounts, or with a text filter applied, any number printed in that column would
+be wrong in a way that looks authoritative.
+→ `GET /transactions` returns `running_balance_cents` when the query names a single account, and null
+otherwise. When it is returned, it counts every earlier transaction in the account, not just the ones the
+other filters let through.
+
+## D-039 Reconciled protection covers amount, date, account and delete
+SPEC §6 protects "the amount, date, or account"; BUILD_PLAN says editing a reconciled transaction needs
+`confirm=true`. The narrow list is the useful one: those three are what the bank agreed with.
+→ Changing any of the three, or deleting the transaction, returns 409
+`reconciled_edit_requires_confirm`. Fixing a memo, payee or category goes through untouched, so tidying
+old records stays friction-free. Bulk delete applies the same rule to the whole selection.
+
+## D-040 A manual-valuation account's typed balance is the whole truth
+An account can have both a typed dated balance and transactions, and the two will disagree.
+→ The latest valuation on or before the date wins, and transactions on that account do not move it.
+Before the first valuation the opening balance applies. Cleared and reconciled equal current, because a
+typed balance has nothing outstanding. Such an account gets no running balance either.
+
+## D-041 Transfers are one call and two rows
+Two separate transactions that happen to match would drift the moment either was edited.
+→ `POST /transfers` writes both legs with a shared `transfer_id`, signed opposite. Editing either leg
+moves amount, date, memo and status on both; deleting either deletes both, and bulk delete handles a
+selection containing both legs without double-counting.
+
+## D-042 The on-budget rule decides which transfer leg carries a split
+SPEC §6 wants a category when money leaves the budget for a tracking account, and none between two
+on-budget accounts.
+→ on-budget ↔ on-budget: no splits, and sending a category is a 422. on-budget → tracking (and the
+reverse): a category is required and the split sits on the on-budget leg only. tracking ↔ tracking: no
+splits, since nothing there touches the budget.
+
+## D-043 Registering with the Phase 3 registries happens once, on import
+The API, the CLI and the tests all need the same answer about what a payee merge moves.
+→ `app/services/__init__.py` calls `wire_registries()` at import, which registers the transaction
+handlers and the real payee usage query. The test suite snapshots and restores the registries around
+every test, so a stub registered under a real name cannot leak — which it did, silently removing the
+transactions handler for every test that ran afterwards.
+
+## D-044 Columns for tables that do not exist yet are left out
+DATA_MODEL lists `subscription_occurrence_id`, `import_batch_id`, `reconciliation_id`, `import_key` and
+`imported_description` on transactions; all five point at tables Phases 8, 10 and 11 create.
+→ They arrive with those phases, each as a one-column migration. Carrying FK-less integer columns for
+several phases buys nothing, and SQLite's batch-mode ALTER rebuilds the table either way.

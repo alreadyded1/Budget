@@ -115,9 +115,9 @@ The MVP you can use every day is ready after **Phase 7**.
 - Editing a reconciled transaction returns 409 unless `confirm=true`.
 
 **Done when**
-- [ ] Tests cover split sums, transfer integrity (editing or deleting one leg affects both), running balances,
+- [x] Tests cover split sums, transfer integrity (editing or deleting one leg affects both), running balances,
       liability signs, and reconciled-edit protection.
-- [ ] Uncategorized splits are queryable (used later for alerts).
+- [x] Uncategorized splits are queryable (used later for alerts).
 
 ## Phase 5 — Ledger UI and fast entry (core screen)
 Build SPEC §7 completely. Split into 5a/5b if needed.
