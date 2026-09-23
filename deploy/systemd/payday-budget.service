@@ -1,0 +1,23 @@
+[Unit]
+Description=Payday Budget
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=payday
+Group=payday
+EnvironmentFile=/etc/payday-budget/payday-budget.env
+WorkingDirectory=/opt/payday-budget/backend
+ExecStart=/opt/payday-budget/backend/.venv/bin/uvicorn app.main:app \
+  --host 0.0.0.0 --port 8000 --workers 1 \
+  --proxy-headers --forwarded-allow-ips=${PB_TRUSTED_PROXY}
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/payday-budget
+
+[Install]
+WantedBy=multi-user.target

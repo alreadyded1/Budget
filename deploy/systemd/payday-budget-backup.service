@@ -1,0 +1,15 @@
+[Unit]
+Description=Payday Budget nightly backup
+
+[Service]
+Type=oneshot
+User=payday
+Group=payday
+EnvironmentFile=/etc/payday-budget/payday-budget.env
+WorkingDirectory=/opt/payday-budget/backend
+ExecStart=/opt/payday-budget/backend/.venv/bin/pb backup
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/payday-budget

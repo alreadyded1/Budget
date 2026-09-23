@@ -251,3 +251,24 @@ DATA_MODEL lists `subscription_occurrence_id`, `import_batch_id`, `reconciliatio
 `imported_description` on transactions; all five point at tables Phases 8, 10 and 11 create.
 → They arrive with those phases, each as a one-column migration. Carrying FK-less integer columns for
 several phases buys nothing, and SQLite's batch-mode ALTER rebuilds the table either way.
+
+## D-045 install.sh and update.sh were pulled forward from Phase 7 (2026-09-23)
+The household asked for them now, before the ledger UI exists, so the LXC can be stood up and kept
+current while the remaining phases land.
+→ `deploy/install.sh`, `deploy/update.sh`, the systemd units and the env example follow DEPLOYMENT.md
+exactly. The rest of Phase 7 — `restore.sh`, the firewall and NPM steps, and the first real deployment —
+stays in Phase 7. Both scripts use `runuser` rather than `sudo`, which a minimal Debian LXC may not have.
+
+## D-046 The nightly timers install disabled until their commands exist
+`pb run-daily` and `pb backup` arrive in Phase 9, but the timer units are part of the deploy layout now.
+→ install.sh writes both timers and enables one only if the matching `pb` command answers `--help`.
+update.sh enables any timer whose command has since appeared, so Phase 9 needs no extra deploy step.
+Until then update.sh backs the database up with SQLite's online `.backup`, which is safe while the app
+is running.
+
+## D-047 update.sh rolls the checkout back if a migration fails
+DEPLOYMENT.md says to stop and leave the old version running, which leaves new code on disk beside an
+old process — confusing, and the next restart would run untested code against an unmigrated database.
+→ On any failure after the fetch, the checkout is reset to the commit that was running and the service
+is never restarted. The database is untouched and a backup was taken first. A dirty working tree stops
+the update before anything is fetched.

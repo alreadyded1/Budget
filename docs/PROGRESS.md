@@ -93,6 +93,13 @@ registered transactions and proved that part; the box closes when subscriptions 
     rather than the real ones, which Phase 5 wires up.
   - `GET /balances` walks every account one at a time. Fine for a household; worth a single grouped
     query if an account list ever gets long.
+  - An automated security review flagged the transaction endpoints as IDOR (missing per-user ownership
+    scoping). It does not apply: SPEC §1 and §17 give every household member full access to one shared
+    budget, no model carries an owner, and SPEC §19 puts multiple households out of scope. Every flagged
+    endpoint returns 401 to an anonymous caller through the router-level dependency (D-021), verified by
+    test and by request. Expect the same finding on every future phase that adds an endpoint. If a
+    read-only household member is ever wanted, that is a feature with a schema change behind it, not a
+    fix.
 - **Next step:** Plan Phase 5 (ledger UI and fast entry) — the core screen.
 
 ### 2026-09-23 — Phase 3 (Accounts, categories, payees)
@@ -248,7 +255,8 @@ registered transactions and proved that part; the box closes when subscriptions 
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
 - Playwright E2E setup (native install, no containers) — Phase 5 per BUILD_PLAN.
 - Testing Library component tests for tab order and the entry row — Phase 5.
-- `deploy/` scripts and systemd units — Phase 7.
+- `deploy/restore.sh`, the firewall and NPM steps, and the first real LXC deployment — Phase 7
+  (install.sh and update.sh were pulled forward on request, 2026-09-23; see D-045).
 - Expired-session sweep inside `pb run-daily` — Phase 9.
 - `ensure_horizon()` should also run from the daily job so the timeline never ages — Phase 9.
 - Prorating planned amounts across a transition period — Phase 6 (budget planner).

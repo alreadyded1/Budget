@@ -1,0 +1,16 @@
+[Unit]
+Description=Payday Budget daily job
+After=payday-budget.service
+
+[Service]
+Type=oneshot
+User=payday
+Group=payday
+EnvironmentFile=/etc/payday-budget/payday-budget.env
+WorkingDirectory=/opt/payday-budget/backend
+ExecStart=/opt/payday-budget/backend/.venv/bin/pb run-daily
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/payday-budget
