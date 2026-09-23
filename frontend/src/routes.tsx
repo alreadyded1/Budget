@@ -7,6 +7,7 @@ import { LoginPage } from './features/auth/LoginPage'
 import { RequireSession } from './features/auth/RequireSession'
 import { BudgetPage } from './features/budget/BudgetPage'
 import { CalendarPage } from './features/calendar/CalendarPage'
+import { CategoriesPage } from './features/categories/CategoriesPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { LedgerPage } from './features/ledger/LedgerPage'
 import { PayeesPage } from './features/payees/PayeesPage'
@@ -41,6 +42,7 @@ export function AppRoutes() {
           <Route index element={<GeneralSettingsPage />} />
           <Route path="pay-schedule" element={<PayScheduleSettingsPage />} />
           <Route path="pay-periods" element={<PayPeriodsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
           <Route path="users" element={<UsersSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />

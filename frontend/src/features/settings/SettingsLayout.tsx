@@ -4,6 +4,7 @@ const TABS = [
   { to: '/settings', label: 'General', end: true },
   { to: '/settings/pay-schedule', label: 'Pay schedule' },
   { to: '/settings/pay-periods', label: 'Pay periods' },
+  { to: '/settings/categories', label: 'Categories' },
   { to: '/settings/users', label: 'Users' },
 ]
 
@@ -30,7 +31,7 @@ export function SettingsLayout() {
           </NavLink>
         ))}
       </nav>
-      <div className="mt-6 max-w-xl">
+      <div className="mt-6 max-w-3xl">
         <Outlet />
       </div>
     </section>

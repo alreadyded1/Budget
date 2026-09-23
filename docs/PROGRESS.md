@@ -1,10 +1,11 @@
 # Progress
 
-**Current phase:** Phase 3 — Accounts, categories, payees (not started)
-**Next step:** Plan Phase 3 per docs/BUILD_PLAN.md — account CRUD with close/reopen, debt fields and
-valuation mode; category groups and categories with keyboard reorder, hide, sinking-fund flag and delete
-with reassignment; payees with nocase-unique names, inline rename, merge, pinned default category and
-usage stats; plus `pb seed-categories` and the first-run starter set.
+**Current phase:** Phase 4 — Transactions backend (not started)
+**Next step:** Plan Phase 4 per docs/BUILD_PLAN.md — transaction, split and transfer services with
+split-sum validation and paired transfers; the balances service (current, cleared, reconciled, as-of);
+the ledger query with running balance, cursor pagination and filters; bulk operations; mutation responses
+that carry updated balances; and 409 on editing a reconciled transaction without confirm=true.
+Register the payee and category reassigners from D-031, and the payee usage provider from D-032.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -12,7 +13,7 @@ usage stats; plus `pb seed-categories` and the first-run starter set.
 | 0 | Scaffold and tooling | ✅ done | 2026-09-22 |
 | 1 | Auth, users, settings | ✅ done * | 2026-09-22 |
 | 2 | Pay schedule engine | ✅ done | 2026-09-22 |
-| 3 | Accounts, categories, payees | ⬜ | |
+| 3 | Accounts, categories, payees | ✅ done † | 2026-09-23 |
 | 4 | Transactions backend | ⬜ | |
 | 5 | Ledger UI and fast entry | ⬜ | |
 | 6 | Budget planner and dashboard | ⬜ | |
@@ -33,6 +34,10 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 browser click-through of CLI user → login form → signed in. The browser tooling disconnected before that
 check could run. The server side of it is verified (see the session log below).
 
+† Phase 3 is built, but one "Done when" box cannot be closed from inside Phase 3: "merging moves
+transactions, subscriptions, and rules" needs tables that Phases 4, 8 and 10 add. The merge mechanism and
+its registry are tested now; each of those phases registers a handler and ticks its share.
+
 ## Session log
 <!-- Newest first. Copy this block for each session.
 ### YYYY-MM-DD — Phase N (short title)
@@ -41,6 +46,50 @@ check could run. The server side of it is verified (see the session log below).
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-23 — Phase 3 (Accounts, categories, payees)
+- **Done:**
+  - Migration `0004` adds `accounts`, `account_valuations`, `category_groups`, `categories` and `payees`,
+    with nocase-unique names, the nine-type and valuation-mode CHECKs, and `(group_id, name)` unique per
+    group.
+  - Accounts: CRUD, close and reopen (history is kept, the account just leaves the entry lists), reorder,
+    debt fields with APR in basis points (D-034), and dated manual valuations, one per account per day.
+    `on_budget` defaults from the type per SPEC §3 and can be overridden.
+  - Categories: groups and categories, hide, sinking-fund flag, default planned amount, and keyboard
+    reorder through `app/domain/ordering.py` (pure). Delete refuses while a category is in use and takes
+    a reassignment target.
+  - Payees: alphabetical nocase list with search, rename, merge, pinned default category, hide, and
+    usage-stat plumbing that Phase 4 fills in (D-032). A rename onto an existing name returns 409 with
+    both names so the UI can offer the merge (D-033).
+  - `app/services/references.py` is the registry that later phases plug into for merge and
+    delete-with-reassignment (D-031).
+  - CLI: `pb seed-categories` and `pb list-categories`. The same starter set is offered in the UI on an
+    empty Categories page — 8 groups, 26 categories, with Repairs, Maintenance, Gifts and the three
+    Savings categories pre-flagged as sinking funds.
+  - UI: Accounts page (opening balances only; real balances are Phase 4), Categories manager under
+    Settings with Alt+↑/↓ reorder, and the Payees page with search, inline rename on Enter/Esc, and the
+    merge offer.
+  - `frontend/src/lib/money.ts` formats and parses integer cents at the UI edge.
+  - Tests: 158 backend (13 accounts, 16 categories, 17 payees, 10 ordering), 30 frontend.
+- **Deviations from plan:**
+  - Categories sit under Settings rather than in the sidebar, matching SPEC §17 and leaving the nine
+    sidebar items from Phase 0 alone (D-036).
+  - Found while writing the money tests: parsing `1.005` through `Math.round(value * 100)` returns 100
+    cents, not 101, because the product is 100.49999999999999. Parsing now reads the digit string
+    directly (D-037). This is the bug the integer-cents rule exists to prevent, and it would have been
+    invisible until a real amount landed on the edge.
+  - Added `pb list-categories`, which the phase did not list, to check a seed without opening the UI.
+- **Known issues:**
+  - "Merging moves transactions, subscriptions, and rules" stays unticked until Phases 4, 8 and 10
+    register their handlers. The merge itself, and the registry it iterates, are tested with stubs.
+  - Payee usage columns show zero and "never" for every payee until Phase 4.
+  - Account balances are not shown; the page lists opening balances only, as the phase intends.
+  - The browser click-through is still unverified across all three phases: the Chrome extension has
+    stayed disconnected since Phase 0. Verified over HTTP instead — seeding produced 8 groups and 26
+    categories, four Alt+Up presses walked Phone to the top of Utilities and a fifth correctly did
+    nothing, and renaming "Kroger Fuel Center" to "KROGER" returned the merge offer, which then collapsed
+    the two payees into one.
+- **Next step:** Plan Phase 4 (transactions backend).
 
 ### 2026-09-22 — Phase 2 (Pay schedule engine)
 - **Done:**
@@ -155,6 +204,9 @@ check could run. The server side of it is verified (see the session log below).
 - Expired-session sweep inside `pb run-daily` — Phase 9.
 - `ensure_horizon()` should also run from the daily job so the timeline never ages — Phase 9.
 - Prorating planned amounts across a transition period — Phase 6 (budget planner).
+- Register transactions, subscriptions and rules with `app/services/references.py` — Phases 4, 8, 10.
+- Replace the payee usage provider with a real query — Phase 4.
+- `app/domain/money.py` mirroring `frontend/src/lib/money.ts`, same test cases — Phase 4.
 - ntfy settings UI and the runtime HTTP client choice — Phase 9.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
 - First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.

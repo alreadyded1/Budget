@@ -101,3 +101,37 @@ def enable_user(username: str = typer.Argument(..., help="Login name to re-enabl
 
 if __name__ == "__main__":
     app()
+
+
+@app.command("seed-categories")
+def seed_categories() -> None:
+    """Create the starter category set. Existing categories are left alone."""
+    from app.services.seed import seed_categories as seed
+
+    with session_scope() as db:
+        added = seed(db)
+    if not added["groups"] and not added["categories"]:
+        typer.echo("Nothing to add; the starter categories are already there.")
+        return
+    typer.secho(
+        f"Added {added['groups']} groups and {added['categories']} categories.",
+        fg=typer.colors.GREEN,
+    )
+
+
+@app.command("list-categories")
+def list_categories() -> None:
+    """Show the category groups and their categories."""
+    from app.services import categories as categories_service
+
+    with session_scope() as db:
+        groups = categories_service.list_groups(db)
+        if not groups:
+            typer.echo("No categories yet. Add the starter set with: pb seed-categories")
+            return
+        for group in groups:
+            typer.secho(f"{group.name} ({group.kind})", bold=True)
+            for category in categories_service.categories_in(db, group.id):
+                marks = " · sinking fund" if category.is_sinking_fund else ""
+                hidden = " · hidden" if category.is_hidden else ""
+                typer.echo(f"    {category.name}{marks}{hidden}")

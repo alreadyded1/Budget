@@ -164,3 +164,43 @@ periods by date, not by foreign key, so nothing is orphaned.
 SPEC §2 wants roughly 13 months of periods, kept topped up, and Phase 9 adds the daily job.
 → `ensure_horizon()` runs when periods are listed and extends them when the timeline comes within
 120 days of running out. The daily job will call the same function, so there is one code path.
+
+## D-031 A registry for things that reference a payee or category (Phase 3, 2026-09-23)
+Merging payees and deleting a category both have to move rows in tables that do not exist yet:
+transactions (Phase 4), subscriptions (Phase 8), import rules (Phase 10).
+→ `app/services/references.py` holds handlers each later phase registers. Merge and delete iterate the
+registry, so those phases add one function instead of rewriting either operation. The mechanism is tested
+now with stub handlers.
+
+## D-032 Payee usage stats are wired up before they can be real
+The Payees page wants a transaction count, last-used date and total spent, all of which need Phase 4.
+→ `set_usage_provider()` takes the real query in Phase 4; until then every payee reports zero and never.
+The endpoint and the page are finished, so Phase 4 changes one function rather than the screen.
+
+## D-033 A rename onto an existing name is refused, not silently merged
+SPEC §5 asks for a merge *offer*, and merging destroys a row.
+→ `PATCH /payees/{id}` returns 409 `payee_name_taken` with both names in the message. The UI turns that
+into the offer and calls `POST /payees/{id}/merge` only if the person says yes.
+
+## D-034 APR is stored in basis points
+24.99% has two decimal places and money rules forbid floats.
+→ `apr_bps` is an integer: 2499 is 24.99%. The debt payoff math in Phase 14 divides by 10,000 at the
+very end.
+
+## D-035 Reordering renumbers the whole list
+Sparse sort orders drift and eventually collide.
+→ `app/domain/ordering.py` moves an id one place and the service rewrites every `sort_order` in the group
+as 0, 1, 2… Moving the first item up or the last down is a no-op rather than an error, so holding Alt+Up
+at the top of a list does nothing surprising.
+
+## D-036 Categories live under Settings, not in the sidebar
+SPEC §17 lists categories among the settings pages, and Phase 0 fixed the sidebar at nine items.
+→ The manager is a Settings tab at `/settings/categories`, alongside Pay schedule and Pay periods.
+
+## D-037 Money parsing reads the digits, not a float
+`parseAmountToCents('1.005')` through `Math.round(1.005 * 100)` gives 100, because 1.005 * 100 is
+100.49999999999999 in binary floating point. A cent going missing on a rounding edge is exactly what the
+integer-cents rule exists to prevent.
+→ `frontend/src/lib/money.ts` parses the digit string itself and rounds on the third decimal place.
+`roundToCents()` re-reads its product at 15 significant digits before rounding, for callers that already
+hold a number. `app/domain/money.py` gets the mirrored version and the same test cases in Phase 4.

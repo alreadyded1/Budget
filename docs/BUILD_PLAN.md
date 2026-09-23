@@ -95,10 +95,10 @@ The MVP you can use every day is ready after **Phase 7**.
 - UI: Accounts list (balances come later), Categories manager, Payees page.
 
 **Done when**
-- [ ] Renaming a payee to a name that exists in any casing triggers the merge offer. The DB enforces
+- [x] Renaming a payee to a name that exists in any casing triggers the merge offer. The DB enforces
       nocase uniqueness.
 - [ ] Merging moves transactions, subscriptions, and rules. Tests prove it.
-- [ ] Categories can be reordered using only the keyboard.
+- [x] Categories can be reordered using only the keyboard.
 
 ## Phase 4 — Transactions backend
 - Services for transactions, splits, and transfers:

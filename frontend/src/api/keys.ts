@@ -9,4 +9,7 @@ export const queryKeys = {
   paySchedulePreview: ['pay-schedule', 'preview'] as const,
   payPeriods: ['pay-periods'] as const,
   currentPeriod: ['pay-periods', 'current'] as const,
+  accounts: ['accounts'] as const,
+  categoryGroups: ['category-groups'] as const,
+  payees: ['payees'] as const,
 }
