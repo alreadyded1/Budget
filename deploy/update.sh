@@ -134,6 +134,7 @@ install -m 0644 "${APP_DIR}/deploy/systemd/payday-budget.service" /etc/systemd/s
 if [[ "${PORT}" != "8000" ]]; then
   sed -i "s/--port 8000/--port ${PORT}/" /etc/systemd/system/payday-budget.service
 fi
+install -m 0755 "${APP_DIR}/deploy/pb" /usr/local/bin/pb
 systemctl daemon-reload
 systemctl restart payday-budget.service
 

@@ -168,6 +168,8 @@ for job in daily backup; do
   install -m 0644 "${APP_DIR}/deploy/systemd/payday-budget-${job}.timer" /etc/systemd/system/
 done
 systemctl daemon-reload
+install -m 0755 "${APP_DIR}/deploy/pb" /usr/local/bin/pb
+ok "/usr/local/bin/pb (loads ${ENV_FILE}, runs as ${APP_USER})"
 
 systemctl enable --quiet payday-budget.service
 for job in daily:run-daily backup:backup; do
@@ -208,7 +210,7 @@ cat <<NEXT
 ${BOLD}Payday Budget ${VERSION} is installed.${OFF}
 
   Create the first household member:
-      runuser -u ${APP_USER} -- ${PB_BIN} create-user <username>
+      pb create-user <username>
 
   Point NGINX Proxy Manager at  http://$(hostname -I | awk '{print $1}'):${PORT}
   (scheme http, Block Common Exploits on, Force SSL on the SSL tab)

@@ -20,8 +20,12 @@ headers from there. Both flags can be changed later in `/etc/payday-budget/payda
 Then create the first household member:
 
 ```sh
-runuser -u payday -- /opt/payday-budget/backend/.venv/bin/pb create-user you
+pb create-user you
 ```
+
+`/usr/local/bin/pb` is a wrapper that loads the env file and runs as the `payday` user.
+Calling `backend/.venv/bin/pb` directly skips the env file, so it would point at a
+development database under `backend/var/` instead of the real one.
 
 Point NPM at `http://<ct-ip>:8000` (scheme http, Block Common Exploits on, Force SSL), and
 allow port 8000 only from the proxy's IP.

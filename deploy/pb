@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# The pb CLI for an installed Payday Budget. Loads the same env file as the systemd
+# units and runs as the service user, so commands hit the real database.
+# Installed to /usr/local/bin/pb by install.sh and update.sh.
+set -euo pipefail
+
+APP_USER="payday"
+ENV_FILE="/etc/payday-budget/payday-budget.env"
+PB_BIN="/opt/payday-budget/backend/.venv/bin/pb"
+
+[[ ${EUID} -eq 0 ]] || { echo "Run pb as root; it switches to the ${APP_USER} user." >&2; exit 1; }
+[[ -f "${ENV_FILE}" ]] || { echo "${ENV_FILE} is missing. Run install.sh first." >&2; exit 1; }
+
+set -a; . "${ENV_FILE}"; set +a
+cd /
+exec runuser -u "${APP_USER}" -- "${PB_BIN}" "$@"
