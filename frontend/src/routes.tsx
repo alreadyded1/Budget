@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Route, Routes } from 'react-router-dom'
 
 import { AppShell } from './components/AppShell'
@@ -13,7 +14,6 @@ import { ImportPage } from './features/import/ImportPage'
 import { LedgerPage } from './features/ledger/LedgerPage'
 import { PayeesPage } from './features/payees/PayeesPage'
 import { ReconcilePage } from './features/reconcile/ReconcilePage'
-import { ReportsPage } from './features/reports/ReportsPage'
 import { GeneralSettingsPage } from './features/settings/GeneralSettingsPage'
 import { NotificationsSettingsPage } from './features/settings/NotificationsSettingsPage'
 import { PayPeriodsPage } from './features/settings/PayPeriodsPage'
@@ -22,6 +22,15 @@ import { RulesSettingsPage } from './features/settings/RulesSettingsPage'
 import { SettingsLayout } from './features/settings/SettingsLayout'
 import { UsersSettingsPage } from './features/settings/UsersSettingsPage'
 import { SubscriptionsPage } from './features/subscriptions/SubscriptionsPage'
+
+// Recharts only loads with the Reports section (D-087).
+const ReportsPage = lazy(() => import('./features/reports/ReportsPage'))
+
+const reports = (
+  <Suspense fallback={<p className="text-sm text-slate-500">Loading…</p>}>
+    <ReportsPage />
+  </Suspense>
+)
 
 export function AppRoutes() {
   return (
@@ -45,7 +54,8 @@ export function AppRoutes() {
         <Route path="accounts" element={<AccountsPage />} />
         <Route path="subscriptions" element={<SubscriptionsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
-        <Route path="reports" element={<ReportsPage />} />
+        <Route path="reports" element={reports} />
+        <Route path="reports/:report" element={reports} />
         <Route path="payees" element={<PayeesPage />} />
         <Route path="settings" element={<SettingsLayout />}>
           <Route index element={<GeneralSettingsPage />} />

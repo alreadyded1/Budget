@@ -23,6 +23,8 @@ export const queryKeys = {
   notifications: ['notifications'] as const,
   rules: ['rules'] as const,
   reconcile: ['reconcile'] as const,
+  reports: ['reports'] as const,
+  report: (name: string, query: string) => ['reports', name, query] as const,
   worksheet: (accountId: number, statementDate: string) =>
     ['reconcile', 'worksheet', accountId, statementDate] as const,
   reconciliations: (accountId: number) => ['reconcile', 'history', accountId] as const,

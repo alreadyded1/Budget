@@ -1,8 +1,8 @@
 # Progress
 
-**Current phase:** Phase 12 — Reports (not started)
-**Next step:** Plan Phase 12 per docs/BUILD_PLAN.md and SPEC §16 — the date-range resolver, report
-endpoints, and the Reports section with charts, drill-down and CSV export.
+**Current phase:** Phase 13 — Goals and sinking funds (not started)
+**Next step:** Plan Phase 13 per docs/BUILD_PLAN.md and SPEC §13 — savings goals and sinking funds,
+the per-period contribution, on-track status and projected completion.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -19,7 +19,7 @@ endpoints, and the Reports section with charts, drill-down and CSV export.
 | 9 | Daily job and ntfy | ✅ done | 2026-09-24 |
 | 10 | Import and rules | ✅ done | 2026-09-24 |
 | 11 | Reconciliation | ✅ done | 2026-09-24 |
-| 12 | Reports | ⬜ | |
+| 12 | Reports | ✅ done | 2026-09-24 |
 | 13 | Goals and sinking funds | ⬜ | |
 | 14 | Net worth and debt payoff | ⬜ | |
 | 15 | Receipt attachments | ⬜ | |
@@ -39,6 +39,30 @@ check could run. The server side of it is verified (see the session log below).
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 12 (Reports)
+- **Done:**
+  - `app/domain/date_ranges.py`: the seven presets and month bucketing, pure and tested on Jan 1,
+    month-end, a leap year, and inside and after a transition period (D-083).
+  - `app/services/reports.py` and `/api/v1/reports/*`: range, spending by category, spending by payee,
+    income vs. expense (by month or pay period, net, savings rate), planned vs. actual (whole periods),
+    category trend, subscription costs by category, and the transaction list with running totals and
+    split-aware drill-down (D-084 to D-086). Every report takes a preset or from/to plus account,
+    category and payee filters.
+  - UI: `/reports/:report` (lazy-loaded) with one filter row (preset, custom dates, account / category /
+    payee pickers) kept in the URL, a tab per report, Recharts bar and line charts with tooltips and
+    legends, every table exporting CSV, drill-down links, a Print button and print CSS (D-087).
+  - Tests: 470 backend (+25: 10 domain presets, 15 API tying income − spending and the category
+    drill-down to the ledger, transfers excluded, splits, refunds, filters, buckets, planned vs. actual,
+    subscriptions), 169 frontend (+13), 6 E2E (+1: custom range, CSV download, drill-down, switching
+    reports with filters kept).
+- **Deviations from plan:**
+  - Net worth over time is a placeholder tab until Phase 14, as agreed.
+  - The ledger E2E spec now waits for the server to confirm a save before relying on the new payee's
+    last category; typing faster than that round trip left the category blank (parking lot).
+- **Known issues:**
+  - None new. Nothing to migrate; `update.sh` after merging rebuilds the SPA.
+- **Next step:** Plan Phase 13 (goals and sinking funds).
 
 ### 2026-09-24 — Phase 11 (Reconciliation)
 - **Done:**
@@ -512,7 +536,10 @@ check could run. The server side of it is verified (see the session log below).
 - Sinking-fund carryover in the planner — Phase 13.
 - Collapsible groups on the planner — Phase 16.
 - Re-apply a rule created during review to the batch's other staged rows — Phase 16.
-- A reconciliation report (statement vs. ledger per period) — Phase 12 if wanted.
+- A reconciliation report (statement vs. ledger per period), if wanted — Phase 16.
+- Net worth over time report — Phase 14 (tab already in Reports).
+- Ledger: learn a new payee's last category from the optimistic row, not only from the server's
+  reply, so a fast typist's next entry prefills — Phase 16.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
 - First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.
 - A "session list / sign out everywhere" screen was not asked for; note it if it ever comes up.

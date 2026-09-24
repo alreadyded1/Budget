@@ -517,3 +517,38 @@ reconciliations, and a cycle breaks table ordering); a delete listener clears it
 Undo deletes the record and its adjustment and puts its rows back to cleared. Undoing an older one would
 leave later reconciliations resting on a balance that no longer exists, so it is refused
 (409 `reconcile_not_latest`); undo them newest first.
+
+## D-083 Report date presets (confirmed with the user, 2026-09-24)
+"This pay period" and "Last pay period" are whole periods, start to end, as the planner shows them
+(future-dated entries included); a transition period is simply the period that covers the day.
+"Month to date" and "Year to date" end today; "Last month" and "Last year" are calendar spans. The
+resolver is a pure function (`app/domain/date_ranges.py`); custom ranges must not run backwards.
+
+## D-084 What reports count as spending and income (confirmed with the user, 2026-09-24)
+The planner's rule: on-budget accounts only, expense categories are spending net of refunds, income
+categories are income, transfers between on-budget accounts drop out (they have no splits), and the
+on-budget leg of a payment to a tracking account counts in its category. Uncategorized splits count by
+sign: an outflow is spending (an "Uncategorized" row), an inflow is income. So income − spending equals
+the on-budget ledger's net for any range. Shares and savings rates are integer basis points, rounded
+half away from zero; the savings rate is (income − spending) ÷ income, blank without income.
+
+## D-085 Planned vs. actual takes whole pay periods (confirmed with the user, 2026-09-24)
+Plans are per period, so every period that touches the range is shown whole, using the planner's own
+numbers (`budget.build_view`, which does not prefill unopened periods). The planner counts every
+on-budget account, so account and payee filters do not apply to this report; a category filter does.
+Income vs. expense by pay period uses the same periods but only the days inside the range.
+
+## D-086 The transaction list is the drill-down
+Clicking a category or payee opens the Transactions report for the exact dates shown (a custom range,
+so "this pay period" cannot shift underneath), on-budget accounts only. With a category filter each
+row counts only its matching splits, so a split purchase contributes just its grocery part and the list
+adds up to the category's total; the Uncategorized row drills to uncategorized outflows. Without
+filters the list covers every account. It returns up to 10,000 rows, unpaged, and says when it stops.
+
+## D-087 Recharts, loaded with the Reports section only; CSV built in the browser
+Recharts (the charting library BUILD_PLAN names) is a dependency of the frontend: React components for
+bar and line charts with tooltips and legends, no server side. The Reports route is lazy-loaded, so the
+ledger's bundle does not carry it. CSV is built from the rows on screen: UTF-8, a header row, amounts
+as plain signed decimals (-45.20), dates as YYYY-MM-DD, files named `<report>_<from>_<to>.csv`. Chart
+colours are the dataviz reference palette's categorical slots, fixed order, stepped for dark mode, with
+every chart paired with its table.
