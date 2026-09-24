@@ -16,6 +16,7 @@ from app.api.v1 import (
     notifications,
     pay_schedule,
     payees,
+    reconcile,
     settings,
     subscriptions,
     transactions,
@@ -38,6 +39,7 @@ protected.include_router(accounts.router)
 protected.include_router(categories.router)
 protected.include_router(payees.router)
 protected.include_router(transactions.router)
+protected.include_router(reconcile.router)
 protected.include_router(budget.router)
 protected.include_router(subscriptions.router)
 protected.include_router(notifications.router)

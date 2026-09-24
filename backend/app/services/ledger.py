@@ -237,7 +237,7 @@ def bulk_set_status(
     rows = _load(db, ids)
     touched = set()
     for row in rows:
-        row.status = status
+        transactions_service.apply_status(row, status, confirm=confirm)
         touched.add(row.account_id)
     db.commit()
     return transactions_service.TransactionResult(
@@ -274,7 +274,13 @@ def bulk_delete(
     db: DbSession, ids: list[int], *, confirm: bool = False
 ) -> transactions_service.TransactionResult:
     rows = _load(db, ids)
-    if not confirm and any(row.status == "reconciled" for row in rows):
+    transfer_ids = {row.transfer_id for row in rows if row.is_transfer}
+    partners = (
+        db.scalars(select(Transaction).where(Transaction.transfer_id.in_(transfer_ids))).all()
+        if transfer_ids
+        else []
+    )
+    if not confirm and any(row.status == "reconciled" for row in [*rows, *partners]):
         raise AppError(
             409,
             "Some of these are reconciled. Deleting them needs confirmation.",

@@ -54,6 +54,10 @@ class Transaction(TimestampMixin, Base):
     )
     import_key: Mapped[str | None] = mapped_column(String(64), default=None)
     imported_description: Mapped[str | None] = mapped_column(Text, default=None)
+    #: The reconciliation that locked it (Phase 11). Set only together with status reconciled.
+    reconciliation_id: Mapped[int | None] = mapped_column(
+        ForeignKey("reconciliations.id", ondelete="SET NULL"), default=None, index=True
+    )
 
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), default=None)
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), default=None)

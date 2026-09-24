@@ -253,8 +253,10 @@ class TestBulkActions:
         assert sorted(body["deleted_ids"]) == sorted(leg["id"] for leg in legs)
         assert auth_client.get(TX).json()["items"] == []
 
-    def test_bulk_delete_refuses_reconciled_rows_without_confirmation(self, auth_client, checking):
-        row = add(auth_client, checking, date(2026, 9, 1), -100, status="reconciled")
+    def test_bulk_delete_refuses_reconciled_rows_without_confirmation(
+        self, auth_client, checking, lock
+    ):
+        row = lock(add(auth_client, checking, date(2026, 9, 1), -100))
 
         refused = auth_client.post(f"{TX}/bulk/delete", json={"ids": [row["id"]]}, headers=HEADERS)
         assert refused.status_code == 409

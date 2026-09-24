@@ -1,8 +1,8 @@
 # Progress
 
-**Current phase:** Phase 11 — Reconciliation (not started)
-**Next step:** Plan Phase 11 per docs/BUILD_PLAN.md and SPEC §12 — the reconcile flow, adjustment
-transactions and reconciliation history.
+**Current phase:** Phase 12 — Reports (not started)
+**Next step:** Plan Phase 12 per docs/BUILD_PLAN.md and SPEC §16 — the date-range resolver, report
+endpoints, and the Reports section with charts, drill-down and CSV export.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -18,7 +18,7 @@ transactions and reconciliation history.
 | 8 | Subscriptions and bill calendar | ✅ done | 2026-09-24 |
 | 9 | Daily job and ntfy | ✅ done | 2026-09-24 |
 | 10 | Import and rules | ✅ done | 2026-09-24 |
-| 11 | Reconciliation | ⬜ | |
+| 11 | Reconciliation | ✅ done | 2026-09-24 |
 | 12 | Reports | ⬜ | |
 | 13 | Goals and sinking funds | ⬜ | |
 | 14 | Net worth and debt payoff | ⬜ | |
@@ -39,6 +39,33 @@ check could run. The server side of it is verified (see the session log below).
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 11 (Reconciliation)
+- **Done:**
+  - Migration `0010`: `reconciliations` and `transactions.reconciliation_id`.
+  - `app/domain/reconcile.py`: difference and statement-sign helpers (pure, tested).
+  - `app/services/reconcile.py` and API: worksheet (`GET /accounts/{id}/reconcile`), finish with an
+    optional adjustment (`POST /accounts/{id}/reconciliations`, 409 `reconcile_not_balanced` until the
+    difference is zero), history, undo of the latest.
+  - Status rules (D-080): reconciled only through a finish; unreconciling needs confirmation;
+    transfer legs keep their own status; a reconciled other leg protects the transfer.
+  - UI: `/reconcile/:accountId` from "Reconcile…" on the ledger: statement date and balance (amount
+    owed for cards and loans), a checklist with the live difference (Space ticks, ↑/↓ move), Finish or
+    "Finish with a $X adjustment" with an optional category, history with Undo on the latest. The ledger
+    shows a lock for reconciled rows; clicking it asks before unlocking to cleared.
+  - Decisions D-079 to D-082.
+  - Tests: 445 backend (+22: 5 domain, 17 API covering both Done-when boxes, adjustment, card sign,
+    statement-date rules, per-leg transfer status, undo latest only, deleted adjustment), 156 frontend
+    (+5), 5 E2E (+1: reconcile from the keyboard, blocked Finish, locks, protected row, undo). Tests that
+    created reconciled rows directly now use a `lock` fixture that goes through the flow.
+- **Deviations from plan:**
+  - D-041 amended: transfer legs no longer share a status (D-080). Without that, reconciling checking
+    would have locked the card's side of a payment without any card statement.
+  - `reconciliations.adjustment_transaction_id` has no foreign key (D-081).
+  - Restoring a deleted reconciled row (the ledger's undo-delete) brings it back cleared.
+- **Known issues:**
+  - After merging, run `update.sh` on the LXC: it applies migration `0010`.
+- **Next step:** Plan Phase 12 (reports).
 
 ### 2026-09-24 — Phase 10 (Import and rules)
 - **Done:**
@@ -484,9 +511,8 @@ check could run. The server side of it is verified (see the session log below).
 - Extend the E2E suite beyond the ledger and planner flows — Phase 16 (ARCHITECTURE §Testing).
 - Sinking-fund carryover in the planner — Phase 13.
 - Collapsible groups on the planner — Phase 16.
-- Transaction column deferred to its phase: reconciliation_id (11). subscription_occurrence_id is not
-  needed (D-067).
 - Re-apply a rule created during review to the batch's other staged rows — Phase 16.
+- A reconciliation report (statement vs. ledger per period) — Phase 12 if wanted.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
 - First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.
 - A "session list / sign out everywhere" screen was not asked for; note it if it ever comes up.

@@ -227,6 +227,7 @@ Before the first valuation the opening balance applies. Cleared and reconciled e
 typed balance has nothing outstanding. Such an account gets no running balance either.
 
 ## D-041 Transfers are one call and two rows
+*Amended by D-080: each leg now keeps its own status.*
 Two separate transactions that happen to match would drift the moment either was edited.
 → `POST /transfers` writes both legs with a shared `transfer_id`, signed opposite. Editing either leg
 moves amount, date, memo and status on both; deleting either deletes both, and bulk delete handles a
@@ -488,3 +489,31 @@ reader of `<STMTTRN>` blocks rather than ofxparse/ofxtools, which are unmaintain
 five fields used. Duplicates are keyed by FITID when the file has one, otherwise by a hash of account,
 date, amount, description and the row's position among identical rows, so two same-day $5 coffees stay
 two rows.
+
+## D-079 Ticking a row on the reconcile screen saves it as cleared (confirmed with the user, 2026-09-24)
+There is no draft reconciliation. A tick is the ordinary status change to cleared and an untick sets
+uncleared, so leaving halfway keeps the work. The worksheet is the uncleared and cleared rows up to the
+statement date; the typed statement date and balance are remembered per browser (localStorage).
+Difference = statement − (opening + every reconciled row + the ticked rows); Finish needs it to be zero.
+A statement date before the account's last reconciliation, or before it was opened, is refused.
+
+## D-080 Reconciled is reachable only through a reconciliation; transfer legs have their own status
+Creating, editing or bulk-setting a status of reconciled returns 422 `reconcile_through_flow`. Taking a
+row out of reconciled needs `confirm=true` (409 `reconciled_edit_requires_confirm`, as in D-039) and
+unlinks it from its reconciliation; moving a reconciled row to another account makes it cleared there.
+This amends D-041: a transfer's two legs are on two statements, so each keeps its own status. Amount and
+date still move on both legs, so an edit that would change a reconciled other leg, or deleting it,
+needs the same confirmation.
+
+## D-081 Statements are typed as printed; adjustments are filed under one payee
+(Confirmed with the user, 2026-09-24.) A liability's statement is typed as the amount owed ($512.30 →
+512.30); the UI turns it into the account's sign (-51230) and the API only ever sees the account's
+sign. An adjustment is one reconciled transaction dated the statement date, payee "Reconciliation
+adjustment" (created on first use), for the whole difference, with an optional category.
+`reconciliations.adjustment_transaction_id` has no foreign key (transactions already reference
+reconciliations, and a cycle breaks table ordering); a delete listener clears it instead.
+
+## D-082 Only an account's latest reconciliation can be undone (confirmed with the user, 2026-09-24)
+Undo deletes the record and its adjustment and puts its rows back to cleared. Undoing an older one would
+leave later reconciliations resting on a balance that no longer exists, so it is refused
+(409 `reconcile_not_latest`); undo them newest first.

@@ -198,8 +198,14 @@ def create_transfer(
 
 
 @router.post("/transactions/bulk/status", response_model=MutationOut)
-def bulk_status(payload: BulkStatus, db: DbSession = Depends(get_db)) -> MutationOut:
-    return _mutation(db, ledger_service.bulk_set_status(db, payload.ids, payload.status))
+def bulk_status(
+    payload: BulkStatus,
+    db: DbSession = Depends(get_db),
+    confirm: bool = Query(default=False),
+) -> MutationOut:
+    return _mutation(
+        db, ledger_service.bulk_set_status(db, payload.ids, payload.status, confirm=confirm)
+    )
 
 
 @router.post("/transactions/bulk/category", response_model=MutationOut)

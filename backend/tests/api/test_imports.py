@@ -437,14 +437,10 @@ class TestUndo:
         )
         assert auth_client.get(f"/api/v1/imports/{batch['id']}").status_code == 404
 
-    def test_undo_is_refused_once_anything_is_reconciled(self, auth_client, checking):
+    def test_undo_is_refused_once_anything_is_reconciled(self, auth_client, checking, lock):
         batch = stage(auth_client, checking, "checking.ofx")
         commit(auth_client, batch)
-        first = ledger(auth_client, checking)[0]
-        response = auth_client.patch(
-            f"/api/v1/transactions/{first['id']}", json={"status": "reconciled"}, headers=HEADERS
-        )
-        assert response.status_code == 200, response.text
+        lock(ledger(auth_client, checking)[0])
 
         refused = auth_client.post(f"/api/v1/imports/{batch['id']}/undo", headers=HEADERS)
 

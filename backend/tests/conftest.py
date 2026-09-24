@@ -107,3 +107,35 @@ def _restore_registries() -> Iterator[None]:
         registry.clear()
         registry.update(snapshot)
     payees_service.set_usage_provider(provider)
+
+
+@pytest.fixture
+def lock(auth_client):
+    """Reconcile a transaction the only way there is (D-080): tick it, then finish.
+
+    Every other cleared row on that account up to the same date is reconciled with it.
+    """
+    headers = {"X-PB-Request": "1"}
+
+    def _lock(transaction: dict) -> dict:
+        account, on = transaction["account_id"], transaction["date"]
+        if transaction["status"] != "cleared":
+            ticked = auth_client.patch(
+                f"/api/v1/transactions/{transaction['id']}",
+                json={"status": "cleared"},
+                headers=headers,
+            )
+            assert ticked.status_code == 200, ticked.text
+        sheet = auth_client.get(f"/api/v1/accounts/{account}/reconcile?statement_date={on}").json()
+        done = auth_client.post(
+            f"/api/v1/accounts/{account}/reconciliations",
+            json={
+                "statement_date": on,
+                "statement_balance_cents": sheet["reconciled_cents"] + sheet["ticked_cents"],
+            },
+            headers=headers,
+        )
+        assert done.status_code == 201, done.text
+        return {**transaction, "status": "reconciled"}
+
+    return _lock

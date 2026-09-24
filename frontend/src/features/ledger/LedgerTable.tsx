@@ -197,8 +197,12 @@ export function LedgerTable({
                       type="button"
                       tabIndex={-1}
                       aria-label={`Status: ${tx.status}`}
-                      title={tx.status}
-                      disabled={pending || tx.status === 'reconciled'}
+                      title={
+                        tx.status === 'reconciled'
+                          ? 'Reconciled: locked against a bank statement'
+                          : tx.status
+                      }
+                      disabled={pending}
                       onClick={(event) => {
                         event.stopPropagation()
                         onToggleCleared(tx.id)
@@ -209,10 +213,10 @@ export function LedgerTable({
                           ? 'border border-slate-300 text-slate-300 dark:border-slate-600'
                           : tx.status === 'cleared'
                             ? 'bg-emerald-500 text-white'
-                            : 'bg-slate-500 text-white',
+                            : 'inline-flex items-center justify-center text-slate-500 dark:text-slate-400',
                       ].join(' ')}
                     >
-                      {tx.status === 'reconciled' ? 'R' : 'C'}
+                      {tx.status === 'reconciled' ? <LockIcon /> : 'C'}
                     </button>
                   </div>
                   <div
@@ -231,5 +235,17 @@ export function LedgerTable({
         </div>
       </div>
     </div>
+  )
+}
+
+/** The reconciled mark (BUILD_PLAN Phase 11). */
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden="true" data-testid="lock-icon">
+      <path
+        fill="currentColor"
+        d="M8 1a3.5 3.5 0 0 0-3.5 3.5V6H4a1.5 1.5 0 0 0-1.5 1.5v6A1.5 1.5 0 0 0 4 15h8a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 12 6h-.5V4.5A3.5 3.5 0 0 0 8 1Zm2 5H6V4.5a2 2 0 1 1 4 0V6Z"
+      />
+    </svg>
   )
 }

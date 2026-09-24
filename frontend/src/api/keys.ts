@@ -22,6 +22,10 @@ export const queryKeys = {
   subscriptions: ['subscriptions'] as const,
   notifications: ['notifications'] as const,
   rules: ['rules'] as const,
+  reconcile: ['reconcile'] as const,
+  worksheet: (accountId: number, statementDate: string) =>
+    ['reconcile', 'worksheet', accountId, statementDate] as const,
+  reconciliations: (accountId: number) => ['reconcile', 'history', accountId] as const,
   importProfiles: ['import-profiles'] as const,
   imports: ['imports'] as const,
   importHistory: (accountId: number) => ['imports', 'history', accountId] as const,
