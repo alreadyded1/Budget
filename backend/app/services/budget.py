@@ -28,6 +28,7 @@ from app.models import (
     TransactionSplit,
 )
 from app.services import categories as categories_service
+from app.services import subscriptions as subscriptions_service
 
 
 @dataclass(slots=True)
@@ -42,6 +43,8 @@ class PlanLine:
     is_sinking_fund: bool
     is_hidden: bool
     note: str | None
+    #: Bills due in the period for this category (SPEC §8, §9).
+    committed_cents: int = 0
 
 
 @dataclass(slots=True)
@@ -151,6 +154,8 @@ def ensure_plan(db: DbSession, period: PayPeriod) -> bool:
     if exists:
         return False
     added = False
+    # SPEC §8: the template plus the bills due in the period (D-065).
+    bills = subscriptions_service.committed_by_category(db, period.start_date, period.end_date)
     for group, category in _all_categories(db):
         if group.is_hidden or category.is_hidden:
             continue
@@ -158,7 +163,7 @@ def ensure_plan(db: DbSession, period: PayPeriod) -> bool:
             PeriodPlan(
                 pay_period_id=period.id,
                 category_id=category.id,
-                planned_cents=max(0, category.default_planned_cents),
+                planned_cents=max(0, category.default_planned_cents) + bills.get(category.id, 0),
             )
         )
         added = True
@@ -240,8 +245,14 @@ def copy_previous(db: DbSession, period_id: int) -> BudgetView:
 
 
 def apply_template(db: DbSession, period_id: int) -> BudgetView:
+    """The template plus the period's bills, the same numbers a new period starts with."""
     period = get_period(db, period_id)
-    return _every_category_to(db, period, lambda category: category.default_planned_cents)
+    bills = subscriptions_service.committed_by_category(db, period.start_date, period.end_date)
+    return _every_category_to(
+        db,
+        period,
+        lambda category: max(0, category.default_planned_cents) + bills.get(category.id, 0),
+    )
 
 
 def clear_plan(db: DbSession, period_id: int) -> BudgetView:
@@ -269,8 +280,15 @@ def prorate_plan(db: DbSession, period_id: int) -> BudgetView:
         raise AppError(422, "Only a transition period can be prorated.", "not_a_transition_period")
     days = period_days(period)
     base_days = period_days(proration_base(db, period))
+    # Bills fall on real dates, so they are added whole rather than prorated (D-065).
+    bills = subscriptions_service.committed_by_category(db, period.start_date, period.end_date)
     return _every_category_to(
-        db, period, lambda category: math.prorate(category.default_planned_cents, days, base_days)
+        db,
+        period,
+        lambda category: (
+            math.prorate(max(0, category.default_planned_cents), days, base_days)
+            + bills.get(category.id, 0)
+        ),
     )
 
 
@@ -280,6 +298,7 @@ def prorate_plan(db: DbSession, period_id: int) -> BudgetView:
 def build_view(db: DbSession, period: PayPeriod) -> BudgetView:
     plans = _plan_rows(db, period.id)
     totals = split_totals(db, period.start_date, period.end_date)
+    committed = subscriptions_service.committed_by_category(db, period.start_date, period.end_date)
 
     income: list[PlanGroup] = []
     expense: list[PlanGroup] = []
@@ -293,7 +312,7 @@ def build_view(db: DbSession, period: PayPeriod) -> BudgetView:
             actual = math.actual_for(kind, totals.get(category.id, 0))
             hidden = group.is_hidden or category.is_hidden
             # A hidden category still shows while it has money planned or moving.
-            if hidden and planned == 0 and actual == 0:
+            if hidden and planned == 0 and actual == 0 and not committed.get(category.id):
                 continue
             line = PlanLine(
                 category_id=category.id,
@@ -306,6 +325,7 @@ def build_view(db: DbSession, period: PayPeriod) -> BudgetView:
                 is_sinking_fund=category.is_sinking_fund,
                 is_hidden=hidden,
                 note=row.note if row else None,
+                committed_cents=committed.get(category.id, 0),
             )
             plan_group.lines.append(line)
             plan_group.planned_cents += planned
@@ -334,6 +354,8 @@ def build_view(db: DbSession, period: PayPeriod) -> BudgetView:
 def open_period(db: DbSession, period_id: int) -> BudgetView:
     """What the planner shows, prefilling the period on first open."""
     period = get_period(db, period_id)
+    # Bills must be materialized before a new period is prefilled from them.
+    subscriptions_service.ensure_horizon(db, date.today())
     ensure_plan(db, period)
     return build_view(db, period)
 

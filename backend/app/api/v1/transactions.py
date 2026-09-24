@@ -11,6 +11,7 @@ from app.models import Transaction, User
 from app.schemas.transaction import (
     BalanceListOut,
     BalanceOut,
+    BillMatchOut,
     BulkCategory,
     BulkDelete,
     BulkStatus,
@@ -25,6 +26,7 @@ from app.schemas.transaction import (
 from app.services import accounts as accounts_service
 from app.services import balances as balances_service
 from app.services import ledger as ledger_service
+from app.services import subscriptions as subscriptions_service
 from app.services import transactions as service
 
 router = APIRouter(tags=["transactions"])
@@ -111,6 +113,9 @@ def create_transaction(
     db: DbSession = Depends(get_db),
     user: User = Depends(current_user),
 ) -> MutationOut:
+    if payload.subscription_occurrence_id is not None:
+        # Refuse an unknown bill before anything is written.
+        subscriptions_service.get_occurrence(db, payload.subscription_occurrence_id)
     result = service.create_transaction(
         db,
         account_id=payload.account_id,
@@ -123,7 +128,19 @@ def create_transaction(
         check_number=payload.check_number,
         user_id=user.id,
     )
-    return _mutation(db, result)
+    out = _mutation(db, result)
+    after = subscriptions_service.after_transaction_created(
+        db, result.transactions[0], payload.subscription_occurrence_id
+    )
+    out.paid_occurrence_id = after.paid_occurrence_id
+    if after.match is not None:
+        out.bill_match = BillMatchOut(
+            occurrence_id=after.match.occurrence.id,
+            name=after.match.subscription.name,
+            due_date=after.match.occurrence.due_date,
+            amount_cents=after.match.occurrence.amount_cents,
+        )
+    return out
 
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionOut)

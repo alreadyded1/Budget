@@ -192,9 +192,9 @@ Implement DEPLOYMENT.md.
 - Dashboard upcoming-bills widget.
 
 **Done when**
-- [ ] Tests pass for monthly on the 31st, annual, and custom every-6-weeks schedules. Edits never touch paid
+- [x] Tests pass for monthly on the 31st, annual, and custom every-6-weeks schedules. Edits never touch paid
       occurrences.
-- [ ] The planner shows committed bill amounts per category for the period.
+- [x] The planner shows committed bill amounts per category for the period.
 
 ## Phase 9 — Daily job and ntfy
 - `pb run-daily`:

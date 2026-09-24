@@ -434,6 +434,15 @@ function Row({
           <span className="ml-1.5 text-xs text-slate-400">sinking fund</span>
         )}
         {line.is_hidden && <span className="ml-1.5 text-xs text-slate-400">hidden</span>}
+        {line.committed_cents > 0 && (
+          <span
+            className="ml-1.5 text-xs text-slate-400"
+            title="Bills due this period from Subscriptions"
+            data-testid={`committed-${line.name}`}
+          >
+            {formatCents(line.committed_cents)} in bills
+          </span>
+        )}
       </div>
       <PlannedInput line={line} index={index} onCommit={onCommit} />
       <div className="text-right tabular-nums">{formatCents(line.actual_cents)}</div>

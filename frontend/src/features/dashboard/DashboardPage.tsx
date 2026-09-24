@@ -8,6 +8,7 @@ import { ApiRequestError } from '../../api/client'
 import { queryKeys } from '../../api/keys'
 import { formatCents } from '../../lib/money'
 import { TRANSFER_PREFIX } from '../ledger/draft'
+import { useBillActions } from '../calendar/useBillActions'
 import { useReferenceData } from '../ledger/useLedgerData'
 
 function Card({
@@ -92,6 +93,7 @@ function PeriodSummary({ budget }: { budget: BudgetView | null }) {
 /** The dashboard: the current pay period at a glance (BUILD_PLAN Phase 6). */
 export function DashboardPage() {
   const reference = useReferenceData()
+  const billActions = useBillActions()
   const board = useQuery({
     queryKey: queryKeys.dashboard,
     queryFn: ({ signal }) => fetchDashboard(signal),
@@ -201,10 +203,50 @@ export function DashboardPage() {
           )}
         </Card>
 
-        <Card title="Upcoming bills">
-          <p className="text-sm text-slate-500">
-            Bills due this period and next will show here once subscriptions are set up.
-          </p>
+        <Card
+          title="Upcoming bills"
+          action={
+            <Link to="/calendar" className="text-xs text-sky-600 underline">
+              Calendar
+            </Link>
+          }
+        >
+          {data.upcoming_bills.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              Nothing due this pay period or next.{' '}
+              <Link to="/subscriptions" className="text-sky-600 underline">
+                Add subscriptions
+              </Link>{' '}
+              to see bills here.
+            </p>
+          ) : (
+            <ul className="space-y-1 text-sm" data-testid="upcoming-bills">
+              {data.upcoming_bills.map((bill) => (
+                <li
+                  key={bill.occurrence_id}
+                  className="grid grid-cols-[5.5rem_1fr_auto_auto] items-center gap-2"
+                >
+                  <span
+                    className={`tabular-nums ${bill.overdue ? 'font-medium text-rose-600' : 'text-slate-500'}`}
+                  >
+                    {bill.due_date}
+                  </span>
+                  <span className="truncate">
+                    {bill.name}
+                    {bill.overdue && <span className="ml-1.5 text-xs text-rose-600">overdue</span>}
+                  </span>
+                  <span className="tabular-nums">{formatCents(bill.amount_cents)}</span>
+                  <button
+                    type="button"
+                    onClick={() => billActions.markPaid(bill)}
+                    className="rounded px-1.5 text-xs text-sky-700 outline-none hover:bg-sky-50 focus-visible:ring-2 focus-visible:ring-sky-500 dark:text-sky-300 dark:hover:bg-sky-950"
+                  >
+                    Mark paid
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </div>

@@ -6,6 +6,7 @@
 
 import type { Account } from '../../api/accounts'
 import type { Payee } from '../../api/payees'
+import type { Bill } from '../../api/subscriptions'
 import type {
   SplitInput,
   Transaction,
@@ -328,5 +329,20 @@ function buildTransfer(
         memo,
       },
     },
+  }
+}
+
+/** The entry row "Mark paid" opens with: the bill's payee, category, amount and due date. */
+export function draftFromBill(bill: Bill, lookups: Lookups, account: Account | null): Draft {
+  const payee = lookups.payees.find((row) => row.id === bill.payee_id)
+  const category = lookups.categories.find((row) => row.id === bill.category_id)
+  const paidFrom = account ?? lookups.accounts.find((row) => row.id === bill.account_id) ?? null
+  return {
+    ...emptyDraft(bill.due_date, paidFrom),
+    payeeText: payee?.name ?? bill.name,
+    payeeId: payee?.id ?? null,
+    categoryText: category?.name ?? '',
+    categoryId: category?.id ?? null,
+    outflow: centsToInput(bill.amount_cents),
   }
 }

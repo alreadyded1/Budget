@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.pay_schedule import PeriodOut
+from app.schemas.subscription import BillOut
 from app.schemas.transaction import BalanceOut, TransactionOut
 
 Kind = Literal["expense", "income"]
@@ -22,6 +23,7 @@ class PlanLineOut(BaseModel):
     is_sinking_fund: bool
     is_hidden: bool
     note: str | None
+    committed_cents: int = 0
 
 
 class PlanGroupOut(BaseModel):
@@ -83,3 +85,4 @@ class DashboardOut(BaseModel):
     overspent: list[OverspentOut]
     balances: list[BalanceOut]
     recent: list[TransactionOut]
+    upcoming_bills: list[BillOut] = []
