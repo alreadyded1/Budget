@@ -1,10 +1,9 @@
 # Progress
 
-**Current phase:** Phase 5 — Ledger UI and fast entry (not started)
-**Next step:** Plan Phase 5 per docs/BUILD_PLAN.md — the ledger screen: columns per SPEC §7, the pinned
-new-entry row, the tab order and Enter/Esc behaviour, DateInput / AmountInput / Combobox keyboard
-primitives, optimistic insert with running-balance recalculation and rollback on error, and the Playwright
-setup that proves no document navigation happens.
+**Current phase:** Phase 7 — Deploy the MVP to the Proxmox LXC (🟨 built; waiting on the go-live run)
+**Next step:** Run `deploy/GO-LIVE.md` on the real CT (after the PR to `main` is merged) and report
+back: which of the four boxes passed, and the output of anything that did not. Then tick Phase 7's
+boxes and plan Phase 8 (subscriptions and bill calendar).
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -14,9 +13,9 @@ setup that proves no document navigation happens.
 | 2 | Pay schedule engine | ✅ done | 2026-09-22 |
 | 3 | Accounts, categories, payees | ✅ done † | 2026-09-23 |
 | 4 | Transactions backend | ✅ done | 2026-09-23 |
-| 5 | Ledger UI and fast entry | ⬜ | |
-| 6 | Budget planner and dashboard | ⬜ | |
-| 7 | Deploy MVP to LXC | ⬜ | |
+| 5 | Ledger UI and fast entry | ✅ done | 2026-09-24 |
+| 6 | Budget planner and dashboard | ✅ done | 2026-09-24 |
+| 7 | Deploy MVP to LXC | 🟨 built, go-live pending | |
 | 8 | Subscriptions and bill calendar | ⬜ | |
 | 9 | Daily job and ntfy | ⬜ | |
 | 10 | Import and rules | ⬜ | |
@@ -46,6 +45,128 @@ registered transactions and proved that part; the box closes when subscriptions 
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 7 (Deploy the MVP to the Proxmox LXC)
+- **Done:**
+  - `pb backup` and `pb list-backups` (D-059): online-API database copy with an integrity check, a
+    receipts tarball with the same timestamp, atomic writes, pruning by `PB_BACKUP_KEEP_DAYS` that
+    always keeps the newest pair. `backup_keep_days` is in the config.
+  - `deploy/backup.sh` (a backup now) and `deploy/restore.sh` (D-061): check first, confirm, stop,
+    keep the current data as `.pre-restore`, swap in, migrate forward, start, health check, and put
+    everything back on any failure.
+  - `install.sh` warns when the CT is still on UTC; the nightly backup timer is now enabled on install
+    because its command exists. The daily timer still waits for Phase 9.
+  - `deploy/README.md`: NPM proxy host settings, the Proxmox firewall rules (D-060), backups, restore,
+    reboot, and every script option. `deploy/GO-LIVE.md`: the first deployment for
+    `payday.h-dungeon.com` behind NPM at `10.10.20.98`, one section per "Done when" box.
+  - `docs/DEPLOYMENT.md` brought in line: backup file names, the integrity check, restore's check-first
+    and put-back steps, and the firewall choice.
+  - Tests: 294 backend (+15: 10 backup, 5 that run `restore.sh` for real — a round trip onto a changed
+    install, a bare file name, an older schema migrated forward, a corrupt backup refused, and a failed
+    migration rolled back), 108 frontend, 2 E2E.
+  - Checked off the box: `shellcheck` clean on every script, `systemd-analyze verify` finds nothing but
+    the missing `/opt` binaries, and the GO-LIVE §6 scratch restore ran as a real non-root `payday`
+    user via `runuser`.
+- **Deviations from plan:**
+  - None of the four boxes is ticked: each needs the real CT, NPM or systemd (D-062).
+  - Found by the tests: `restore.sh` exited silently (status 2) when the systemd unit was missing,
+    because of `pipefail` in the port lookup, and its roll-back trap did not fire inside functions
+    without `set -E`. Both are fixed.
+- **Known issues:**
+  - A failed nightly backup only shows in `journalctl -u payday-budget-backup` until Phase 9 adds the
+    ntfy alert.
+  - `install.sh` and `update.sh` have not been run end to end yet; the go-live run is their first.
+  - Backups sit on the same disk as the database; vzdump of the CT is the off-box copy.
+- **Next step:** Merge the PR, run `deploy/GO-LIVE.md` on the CT, and report back.
+
+### 2026-09-24 — Phase 6 (Budget planner and dashboard)
+- **Done:**
+  - Migration `0006` adds `period_plans` (unique per period and category, `planned_cents ≥ 0`, cascade
+    from both the period and the category).
+  - `app/domain/budget.py` is pure: the Actual sign rules, remaining, overspent, integer proration, and
+    the summary header.
+  - `app/services/budget.py`: lazy prefill from the template, actuals from one grouped query over
+    on-budget splits, single and bulk edits, copy last period, apply template, clear, prorate, and the
+    uncategorized count. Plan rows follow a category through delete-with-reassignment.
+  - Endpoints: `GET /budget/current`, `GET /budget/{period}`,
+    `PUT /budget/{period}/categories/{category}`, `PUT /budget/{period}/plan`,
+    `POST /budget/{period}/{copy-previous|apply-template|clear|prorate}`, `GET /dashboard`, and an
+    `on_budget` filter on `GET /transactions`.
+  - Planner at `/budget` and `/budget/:periodId`: the summary header (expected income, planned, left to
+    plan, spent, remaining), the income and expense sections by group with subtotals, Planned / Actual /
+    Remaining with progress bars, overspent rows in red, inline planned amounts (Tab/Enter down, Esc
+    reverts, amount math works), the four actions with Undo, the uncategorized alert linking to a
+    filtered ledger, and period navigation by button or `[` `]` `t`.
+  - Dashboard: the current period's numbers, the five most overspent categories, account balances,
+    the ten most recent transactions, and an upcoming-bills placeholder.
+  - Ledger mutations now mark the budget and dashboard stale, so actuals are right when you switch over.
+  - Tests: 279 backend (+41: 15 domain, 26 API), 108 frontend (+10), 2 E2E (+1: plan an amount from
+    the keyboard with the server held back, check the totals moved before it answered, walk the periods,
+    and follow the uncategorized link — all without a document load).
+- **Deviations from plan:**
+  - The five open money questions were answered with the user before building (D-054 to D-057).
+  - Added `PUT /budget/{period}/plan` (bulk set) as the Undo path for the whole-plan actions; the plan
+    listed only the single-category edit.
+  - The dashboard's recent transactions show a dash for a transaction with no payee.
+- **Known issues:**
+  - Sinking-fund categories reset each period like the rest; their carryover arrives in Phase 13.
+  - Subscription bills are not in the prefill yet, and the "committed bills" hint is missing — Phase 8.
+  - Dashboard and planner render every visible category; with the starter set that is a long page.
+    Collapsing groups can wait for Phase 16 polish.
+  - `GET /budget/*` walks the category tree once per request; fine at household scale.
+- **Next step:** Plan Phase 7 (deploy the MVP to the LXC).
+
+### 2026-09-24 — Phase 5 (Ledger UI and fast entry)
+- **Done:** (built in one go rather than as 5a/5b, at the user's request)
+  - Pure helpers with tests: `lib/dates.ts` (`t`, `+`/`-`, `15`, `3/15`, full dates, impossible dates
+    refused), `lib/amountExpr.ts` (exact BigInt fractions, `+ - * /` and brackets, rounded half away
+    from zero once at the end), `lib/fuzzy.ts`, `features/ledger/draft.ts` (entry row → API call, with
+    the field to focus on any error) and `features/ledger/ledgerCache.ts` (optimistic insert, replace,
+    remove, running balances, balances).
+  - Keyboard primitives in `src/components/`: `DateInput`, `AmountInput`, `Combobox` (Tab/Enter pick,
+    two-step Esc, "Create 'X'", grouped categories, pinned "Split…"), and `useRowNavigation`.
+  - The ledger at `/transactions` (All accounts, with an Account field first) and
+    `/transactions/:accountId`: account tabs with balances, the pinned entry row with the SPEC §7 tab
+    order, payee create-on-save, category autofill (pinned default, else last used), optional
+    last-amount prefill, Outflow/Inflow exclusivity and the leading `+`, the split editor with a live
+    remaining amount that carries the leftover into a new line, transfers by typing
+    "Transfer: Savings", inline edit (Enter/Esc), `j`/`k`/arrows, `c`, Delete with a 5-second Undo
+    (and `u`), `n`, `/`, the `?` overlay, the filter bar (text, dates, category, payee, status, amount
+    range) with a filtered total, and a virtualized list that loads older pages as it scrolls.
+  - Every mutation is optimistic: the row and balances change at once, the server's rows and balances
+    replace them, and an error restores the snapshot, refills the row as typed, and shows a toast.
+    Reconciled edits and deletes ask for confirmation and retry with `confirm=true`.
+  - Backend: payees carry `last_category_id` / `last_amount_cents` (D-049) and every transaction carries
+    `transfer_account_id` (D-050). No migration.
+  - The Accounts page shows real balances and links each account to its ledger.
+  - Playwright: `make e2e` builds the SPA and runs it against a throwaway database (`e2e/serve.sh`).
+    The one test enters 10 transactions from the keyboard (3 payees, one new; a split; a transfer; a
+    refund), checks balances on screen and on the server, forces a 500 and checks the rollback and
+    refill, then edits, clears, deletes and undoes — and asserts there was no document request, only
+    fetch/XHR, and that the page never reloaded.
+  - Tests: 238 backend (+4), 98 frontend (+68, including 13 Testing Library tests of tab order and the
+    entry row's keys), 1 E2E.
+- **Deviations from plan:**
+  - Built as one phase instead of 5a/5b, as asked.
+  - The keyboard details the spec left open are recorded in D-053, among them `t` always meaning today,
+    Esc on an empty row stepping out of it, and `u` for undo.
+  - Found by the E2E test: the always-visible "Split…" option became the only, highlighted choice after
+    a category typo, so Tab quietly split the row. Pinned options now filter like the rest.
+  - Found by the E2E test: moving focus to Inflow on a leading `+` a tick late let the next keystroke land
+    in Outflow. Existing fields are now focused synchronously.
+- **Known issues:**
+  - Undoing the delete of a transfer that crosses the budget boundary needs the category, which only the
+    on-budget leg carries. Undo from that leg's ledger works; from the tracking account's ledger (for
+    example the car loan) the server refuses the re-create and a toast says why.
+  - The payee list now runs three small queries per payee (usage, newest transaction, its splits). Fine
+    for a household; worth one grouped query alongside `GET /balances` in Phase 16.
+  - Changing a transaction into a transfer (or back), or a transfer's partner account, means delete and
+    re-enter (D-053).
+  - Combobox dropdowns in an inline-edit row near the bottom of the list scroll with the list rather than
+    floating above it.
+  - The E2E test needs a Chromium: `npx playwright install chromium` on the dev machine, or
+    `PB_CHROMIUM_PATH`. It is not part of `make test`.
+- **Next step:** Plan Phase 6 (budget planner and dashboard).
 
 ### 2026-09-23 — Phase 4 (Transactions backend)
 - **Done:**
@@ -253,15 +374,16 @@ registered transactions and proved that part; the box closes when subscriptions 
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
-- Playwright E2E setup (native install, no containers) — Phase 5 per BUILD_PLAN.
-- Testing Library component tests for tab order and the entry row — Phase 5.
-- `deploy/restore.sh`, the firewall and NPM steps, and the first real LXC deployment — Phase 7
-  (install.sh and update.sh were pulled forward on request, 2026-09-23; see D-045).
 - Expired-session sweep inside `pb run-daily` — Phase 9.
+- ntfy alert when the nightly backup fails (`OnFailure=` on the backup unit) — Phase 9.
 - `ensure_horizon()` should also run from the daily job so the timeline never ages — Phase 9.
-- Prorating planned amounts across a transition period — Phase 6 (budget planner).
 - Register subscriptions and rules with `app/services/references.py` — Phases 8 and 10 (transactions done).
 - Group `GET /balances` into one query if the account list ever grows — Phase 16.
+- Group the payee usage and autofill queries into one query for the payee list — Phase 16.
+- Extend the E2E suite beyond the ledger and planner flows — Phase 16 (ARCHITECTURE §Testing).
+- Subscription bills in the period prefill, and the "committed bills" hint per category — Phase 8.
+- Sinking-fund carryover in the planner — Phase 13.
+- Collapsible groups on the planner — Phase 16.
 - Transaction columns deferred to their own phases: subscription_occurrence_id (8), import_batch_id and
   import_key (10), reconciliation_id (11).
 - ntfy settings UI and the runtime HTTP client choice — Phase 9.

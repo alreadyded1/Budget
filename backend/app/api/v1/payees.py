@@ -29,6 +29,8 @@ def _payee_out(db: DbSession, payee: Payee) -> PayeeOut:
         transaction_count=usage.transaction_count,
         last_used=usage.last_used,
         total_spent_cents=usage.total_spent_cents,
+        last_category_id=usage.last_category_id,
+        last_amount_cents=usage.last_amount_cents,
     )
 
 

@@ -69,6 +69,8 @@ class TransactionOut(BaseModel):
     status: Status
     check_number: str | None
     transfer_id: str | None
+    #: The account on the other leg of a transfer; null for everything else.
+    transfer_account_id: int | None = None
     splits: list[SplitOut]
 
 

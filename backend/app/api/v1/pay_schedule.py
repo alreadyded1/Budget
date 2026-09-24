@@ -21,7 +21,7 @@ from app.services import pay_schedule as service
 router = APIRouter(tags=["pay schedule"])
 
 
-def _period_out(period: PayPeriod) -> PeriodOut:
+def period_out(period: PayPeriod) -> PeriodOut:
     return PeriodOut(
         id=period.id,
         start_date=period.start_date,
@@ -95,11 +95,11 @@ def list_periods(
     end: date | None = Query(default=None, alias="to"),
 ) -> PeriodListOut:
     service.ensure_horizon(db, date.today())
-    return PeriodListOut(items=[_period_out(p) for p in service.list_periods(db, start, end)])
+    return PeriodListOut(items=[period_out(p) for p in service.list_periods(db, start, end)])
 
 
 @router.get("/pay-periods/current", response_model=PeriodOut)
 def get_current_period(db: DbSession = Depends(get_db)) -> PeriodOut:
     today = date.today()
     service.ensure_horizon(db, today)
-    return _period_out(service.current_period(db, today))
+    return period_out(service.current_period(db, today))

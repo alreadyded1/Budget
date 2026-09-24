@@ -272,3 +272,117 @@ old process — confusing, and the next restart would run untested code against 
 → On any failure after the fetch, the checkout is reset to the commit that was running and the service
 is never restarted. The database is untouched and a backup was taken first. A dirty working tree stops
 the update before anything is fetched.
+
+## D-048 Phase 5 dependencies
+- `@tanstack/react-virtual` — virtualizes the ledger so thousands of rows scroll smoothly (SPEC §7);
+  same family as TanStack Query, headless, no styling to fight.
+- `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`, `jsdom` (dev) — the
+  component tests ARCHITECTURE asks for (tab order, entry-row keys). jsdom is set per file with a
+  `@vitest-environment jsdom` docblock so the pure tests stay on the faster node environment.
+- `@playwright/test` (dev) — the keyboard E2E. Browsers install natively with
+  `npx playwright install chromium`; `PB_CHROMIUM_PATH` points at an existing Chromium instead.
+
+## D-049 The payee list carries the autofill values
+SPEC §7 fills the category (pinned default, else last used) and optionally the last amount when a payee
+is picked. → `PayeeOut` gains `last_category_id` and `last_amount_cents`, taken from the payee's newest
+transaction (`date desc, id desc`). A newest transaction that is split autofills no category, since
+there is no single one to repeat. Typeahead then needs nothing beyond the cached payee list.
+
+## D-050 Transactions name their transfer partner's account
+A single-account ledger shows only one leg of a transfer but must read "Transfer: Savings".
+→ `TransactionOut.transfer_account_id` is filled with one grouped query per response (ledger page or
+mutation). Nothing is stored; the partner is still found through `transfer_id`.
+
+## D-051 A new payee is created by a second call just before the transaction
+SPEC §7 says a new payee is "created when the row is saved". → The create mutation posts the payee,
+then the transaction, inside one mutation, so the optimistic row and its rollback cover both. If the
+transaction is then refused, the payee stays: it is harmless, it is what was typed, and the refilled
+row will reuse it on the next Enter. A 409 on the payee (someone else just made it) is resolved by
+looking it up instead of failing.
+
+## D-052 Running balances are recomputed from the account's current balance
+After an optimistic change the ledger's running balances are rewritten as "current balance minus
+everything above this row". The ledger is loaded newest first from the top, so this is exact for an
+unfiltered single-account view and needs no server round trip. Filtered views and All accounts keep
+the server's values (null for All accounts), and a filtered view is refetched after each mutation
+because only the server knows what the filter now includes.
+
+## D-053 Keyboard details the spec left open
+- `t` always means today in a date field, and every date shortcut leaves the date selected so the next
+  keystroke replaces it. `-` only steps a day when the field already reads as a date, so typing an ISO
+  date still works.
+- "Split…" and other pinned combobox options are filtered like any other option. Otherwise a typo in
+  Category left "Split…" as the only, highlighted choice, and Tab silently split the row.
+- Fields that exist are focused synchronously (a leading `+` in Outflow jumps to Inflow before the next
+  keystroke arrives); only a split line that has just been added waits for React to render it.
+- Esc on an empty entry row steps out of it, so the row shortcuts (`j`, `k`, `c`, …) are two Esc
+  presses away from anywhere. `u` undoes the last delete, alongside the toast's Undo button.
+- Amount filters are signed, like the ledger: outflows are negative.
+- Changing a transfer into a plain transaction (or the reverse), or moving a transfer to a different
+  partner account, is refused inline with a message to delete and re-enter it. The backend has no
+  operation for either, and faking one as delete-plus-create would lose the row's history.
+
+## D-054 What counts as Actual in the planner (confirmed with the user, 2026-09-24)
+Actual is the sum of split amounts in the category for transactions dated inside the period, **in
+on-budget accounts only**. A transfer between two on-budget accounts has no splits, so it drops out; the
+on-budget leg of a payment to a tracking account (the car loan) carries a split, so it counts. Spending
+in a tracking account is ignored even if categorized. Signs: expense actual = −(sum of splits), so a
+refund lowers it and can take it below zero, shown as-is; income actual = +(sum of splits). Remaining is
+always planned − actual, and only an expense can be overspent.
+
+## D-055 Prorating a transition period (confirmed with the user, 2026-09-24)
+Prorate sets each category to template × (days in the transition period ÷ days in the last normal period
+before it), rounded half away from zero in integer arithmetic. $500.00 over 6 of 14 days is $214.29. If
+the transition period has no normal period before it, prorate is refused.
+
+## D-056 A period is prefilled the first time it is opened (confirmed with the user, 2026-09-24)
+Opening a period with no plan rows writes one row per visible category at its template amount. From then
+on the rows stay: Clear sets them to $0 rather than deleting them, so the template does not come back,
+and a later change to the template does not touch periods already opened. A category added later has no
+row in older periods and reads as $0 planned. Subscription bills join the prefill in Phase 8.
+
+## D-057 Copy, template, clear and prorate overwrite the whole plan (confirmed with the user, 2026-09-24)
+Each writes every category's planned amount in one commit; the toast's Undo puts the previous amounts
+back through `PUT /budget/{period}/plan`, the bulk form of the single-category edit. Hidden categories
+are only written where the period already has a row for them.
+
+## D-058 Planner details
+- Plan rows are removed with their category (FK cascade). Deleting a category with reassignment folds
+  its planned amounts into the target's, period by period.
+- Every planner response is the whole period view (lines, group subtotals, summary), which keeps the
+  "mutations return the aggregates they change" rule without a second shape. The page recomputes the same
+  numbers locally first (`budgetMath.ts`, mirroring `app/domain/budget.py`), and with several edits in
+  flight only the last server answer is applied, so an earlier one cannot briefly undo a later edit.
+- Keyboard: Tab or Enter commits a planned amount and moves down (Shift+Enter moves up), Esc restores
+  it, `[` / `]` change period and `t` returns to the current one.
+- The uncategorized alert links to `/transactions?from=&to=&uncategorized=1&on_budget=1`. The ledger
+  reads those parameters once, shows the scope as a removable chip, and the API gained `on_budget` so
+  the ledger count matches the alert's.
+
+## D-059 `pb backup` arrives in Phase 7, not Phase 9
+Phase 7's "Done when" needs a working nightly backup, and `update.sh` backs up first. → `pb backup`
+(`app/services/backup.py`) and `pb list-backups` are built now. The copy is verified with
+`PRAGMA integrity_check`, both files are written under a `.partial` name and renamed into place, and
+pruning reads the date from the file name (not the mtime) and always keeps the newest pair. The
+existing `install.sh` / `update.sh` logic (D-046) enables the backup timer as soon as the command
+exists. The ntfy alert on failure waits for the ntfy client in Phase 9.
+
+## D-060 The firewall is the Proxmox firewall on the CT (chosen by the user, 2026-09-24)
+An unprivileged LXC often cannot load nftables rules, and a host-side rule survives anything done
+inside the container. → `deploy/README.md` lists the rules (8000 from the NPM LXC only, SSH from the
+LAN, input policy DROP); nothing inside the CT manages a firewall.
+
+## D-061 restore.sh checks first and can always go back
+It refuses a backup that fails `PRAGMA integrity_check` or has no `alembic_version`, and a receipts
+archive with absolute paths, `..` or links, before stopping anything. The live data is kept as
+`budget.db.pre-restore` (via the backup API, so any WAL is folded in) and `receipts.pre-restore`, and
+an ERR trap puts both back and restarts the service if any later step fails. `set -E` is required for
+that trap to fire inside helper functions; the test suite caught its absence. The script takes
+`--data-dir`/`--env-file`/`--user`/`--no-service` so it runs for real in the tests and in the go-live
+scratch check.
+
+## D-062 Phase 7's boxes are ticked on the LXC, not in the cloud session
+The build session has no Proxmox, no systemd and no NPM. → Everything that can be proven off the box
+is (restore round trips in pytest, shellcheck, `systemd-analyze verify`, a `runuser` scratch restore),
+and `deploy/GO-LIVE.md` walks the household through the four boxes on the real CT. They stay open
+until that walk is reported back.

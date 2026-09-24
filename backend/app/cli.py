@@ -99,10 +99,6 @@ def enable_user(username: str = typer.Argument(..., help="Login name to re-enabl
         typer.secho(f"{user.username} is active again.", fg=typer.colors.GREEN)
 
 
-if __name__ == "__main__":
-    app()
-
-
 @app.command("seed-categories")
 def seed_categories() -> None:
     """Create the starter category set. Existing categories are left alone."""
@@ -135,3 +131,48 @@ def list_categories() -> None:
                 marks = " · sinking fund" if category.is_sinking_fund else ""
                 hidden = " · hidden" if category.is_hidden else ""
                 typer.echo(f"    {category.name}{marks}{hidden}")
+
+
+@app.command()
+def backup() -> None:
+    """Back up the database and receipts into the backups folder, then prune old ones."""
+    from datetime import datetime
+
+    from app.services import backup as backup_service
+
+    settings = get_settings()
+    try:
+        made, removed = backup_service.run_backup(
+            settings.db_path,
+            settings.receipts_dir,
+            settings.backups_dir,
+            keep_days=settings.backup_keep_days,
+            now=datetime.now(),
+        )
+    except (backup_service.BackupError, OSError) as exc:
+        typer.secho(f"Backup failed: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1) from exc
+    typer.secho(f"Backed up to {made.database}", fg=typer.colors.GREEN)
+    typer.echo(f"Receipts in {made.receipts}")
+    if removed:
+        typer.echo(f"Removed {len(removed)} files older than {settings.backup_keep_days} days.")
+
+
+@app.command("list-backups")
+def list_backups() -> None:
+    """Show the backups on disk, newest first, for picking one to restore."""
+    from app.services import backup as backup_service
+
+    sets = backup_service.list_backups(get_settings().backups_dir)
+    if not sets:
+        typer.echo("No backups yet. Make one with: pb backup")
+        return
+    for entry in sets:
+        size = entry.database.stat().st_size // 1024 if entry.database else 0
+        receipts = entry.receipts.name if entry.receipts else "(no receipts archive)"
+        database = entry.database.name if entry.database else "(no database copy)"
+        typer.echo(f"{entry.taken_at:%Y-%m-%d %H:%M:%S}  {database} ({size} KB)  {receipts}")
+
+
+if __name__ == "__main__":
+    app()

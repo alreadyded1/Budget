@@ -32,7 +32,9 @@ export function AppRoutes() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="budget" element={<BudgetPage />} />
+        <Route path="budget/:periodId" element={<BudgetPage />} />
         <Route path="transactions" element={<LedgerPage />} />
+        <Route path="transactions/:accountId" element={<LedgerPage />} />
         <Route path="accounts" element={<AccountsPage />} />
         <Route path="subscriptions" element={<SubscriptionsPage />} />
         <Route path="calendar" element={<CalendarPage />} />

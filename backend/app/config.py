@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     database_path: Path | None = None
     secret_key: str = "dev-insecure-secret-key-change-me"
     base_url: str = "http://localhost:8000"
+    #: Nightly backups older than this many days are deleted (the newest is always kept).
+    backup_keep_days: int = 14
 
     @field_validator("env")
     @classmethod

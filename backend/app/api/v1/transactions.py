@@ -30,13 +30,20 @@ from app.services import transactions as service
 router = APIRouter(tags=["transactions"])
 
 
-def _out(transaction: Transaction) -> TransactionOut:
-    return TransactionOut.model_validate(transaction)
+def _out(transaction: Transaction, partners: dict[int, int]) -> TransactionOut:
+    out = TransactionOut.model_validate(transaction)
+    out.transfer_account_id = partners.get(transaction.id)
+    return out
 
 
-def _mutation(result: service.TransactionResult) -> MutationOut:
+def transaction_outs(db: DbSession, rows: list[Transaction]) -> list[TransactionOut]:
+    partners = service.transfer_partner_accounts(db, rows)
+    return [_out(row, partners) for row in rows]
+
+
+def _mutation(db: DbSession, result: service.TransactionResult) -> MutationOut:
     return MutationOut(
-        transactions=[_out(row) for row in result.transactions],
+        transactions=transaction_outs(db, result.transactions),
         deleted_ids=result.deleted_ids,
         balances=[BalanceOut(**balance.as_dict()) for balance in result.balances],
     )
@@ -66,6 +73,7 @@ def list_transactions(
     max_cents: int | None = Query(default=None),
     text: str | None = Query(default=None),
     uncategorized: bool = Query(default=False),
+    on_budget: bool | None = Query(default=None),
     cursor: str | None = Query(default=None),
     limit: int = Query(default=ledger_service.DEFAULT_LIMIT, ge=1, le=ledger_service.MAX_LIMIT),
 ) -> LedgerPageOut:
@@ -80,12 +88,14 @@ def list_transactions(
         max_cents=max_cents,
         text=text,
         uncategorized=uncategorized,
+        on_budget=on_budget,
     )
     page = ledger_service.query(db, filters, cursor=cursor, limit=limit)
+    partners = service.transfer_partner_accounts(db, [row.transaction for row in page.rows])
     return LedgerPageOut(
         items=[
             LedgerRowOut(
-                transaction=_out(row.transaction),
+                transaction=_out(row.transaction, partners),
                 running_balance_cents=row.running_balance_cents,
             )
             for row in page.rows
@@ -113,12 +123,12 @@ def create_transaction(
         check_number=payload.check_number,
         user_id=user.id,
     )
-    return _mutation(result)
+    return _mutation(db, result)
 
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionOut)
 def get_transaction(transaction_id: int, db: DbSession = Depends(get_db)) -> TransactionOut:
-    return _out(service.get_transaction(db, transaction_id))
+    return transaction_outs(db, [service.get_transaction(db, transaction_id)])[0]
 
 
 @router.patch("/transactions/{transaction_id}", response_model=MutationOut)
@@ -138,7 +148,7 @@ def update_transaction(
         confirm=confirm,
         user_id=user.id,
     )
-    return _mutation(result)
+    return _mutation(db, result)
 
 
 @router.delete("/transactions/{transaction_id}", response_model=MutationOut)
@@ -147,7 +157,7 @@ def delete_transaction(
     db: DbSession = Depends(get_db),
     confirm: bool = Query(default=False),
 ) -> MutationOut:
-    return _mutation(service.delete_transaction(db, transaction_id, confirm=confirm))
+    return _mutation(db, service.delete_transaction(db, transaction_id, confirm=confirm))
 
 
 @router.post("/transfers", response_model=MutationOut, status_code=201)
@@ -167,17 +177,17 @@ def create_transfer(
         status=payload.status,
         user_id=user.id,
     )
-    return _mutation(result)
+    return _mutation(db, result)
 
 
 @router.post("/transactions/bulk/status", response_model=MutationOut)
 def bulk_status(payload: BulkStatus, db: DbSession = Depends(get_db)) -> MutationOut:
-    return _mutation(ledger_service.bulk_set_status(db, payload.ids, payload.status))
+    return _mutation(db, ledger_service.bulk_set_status(db, payload.ids, payload.status))
 
 
 @router.post("/transactions/bulk/category", response_model=MutationOut)
 def bulk_category(payload: BulkCategory, db: DbSession = Depends(get_db)) -> MutationOut:
-    return _mutation(ledger_service.bulk_set_category(db, payload.ids, payload.category_id))
+    return _mutation(db, ledger_service.bulk_set_category(db, payload.ids, payload.category_id))
 
 
 @router.post("/transactions/bulk/delete", response_model=MutationOut)
@@ -186,7 +196,7 @@ def bulk_delete(
     db: DbSession = Depends(get_db),
     confirm: bool = Query(default=False),
 ) -> MutationOut:
-    return _mutation(ledger_service.bulk_delete(db, payload.ids, confirm=confirm))
+    return _mutation(db, ledger_service.bulk_delete(db, payload.ids, confirm=confirm))
 
 
 @router.get("/balances", response_model=BalanceListOut)

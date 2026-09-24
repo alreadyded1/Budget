@@ -9,6 +9,8 @@ export type Payee = {
   transaction_count: number
   last_used: string | null
   total_spent_cents: number
+  last_category_id: number | null
+  last_amount_cents: number | null
 }
 
 export function fetchPayees(search = '', signal?: AbortSignal): Promise<{ items: Payee[] }> {

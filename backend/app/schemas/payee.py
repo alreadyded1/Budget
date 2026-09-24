@@ -29,6 +29,8 @@ class PayeeOut(BaseModel):
     transaction_count: int = 0
     last_used: date | None = None
     total_spent_cents: int = 0
+    last_category_id: int | None = None
+    last_amount_cents: int | None = None
 
 
 class PayeeListOut(BaseModel):

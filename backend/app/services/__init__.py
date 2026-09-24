@@ -6,9 +6,10 @@ API, the CLI and the tests all agree about what a payee merge or a category dele
 
 
 def wire_registries() -> None:
-    from app.services import transaction_refs
+    from app.services import budget, transaction_refs
 
     transaction_refs.register()
+    budget.register()
 
 
 wire_registries()

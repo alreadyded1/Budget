@@ -263,6 +263,31 @@ class TestTransfers:
         assert legs[0]["transfer_id"] == legs[1]["transfer_id"]
         assert all(leg["splits"] == [] for leg in legs)
 
+    def test_each_leg_names_the_account_on_the_other_side(self, auth_client, checking, savings):
+        body = auth_client.post(
+            "/api/v1/transfers",
+            json={
+                "from_account_id": checking["id"],
+                "to_account_id": savings["id"],
+                "date": DAY,
+                "amount_cents": 25_000,
+            },
+            headers=HEADERS,
+        ).json()
+        partner = {leg["account_id"]: leg["transfer_account_id"] for leg in body["transactions"]}
+        assert partner == {checking["id"]: savings["id"], savings["id"]: checking["id"]}
+
+        # A single-account ledger page still knows where the money went.
+        rows = auth_client.get(f"{TX}?account_id={checking['id']}").json()["items"]
+        assert rows[0]["transaction"]["transfer_account_id"] == savings["id"]
+
+        plain = auth_client.post(
+            TX,
+            json={"account_id": checking["id"], "date": DAY, "amount_cents": -100},
+            headers=HEADERS,
+        ).json()["transactions"][0]
+        assert plain["transfer_account_id"] is None
+
     def test_editing_one_leg_moves_the_other(self, auth_client, checking, savings):
         legs = auth_client.post(
             "/api/v1/transfers",

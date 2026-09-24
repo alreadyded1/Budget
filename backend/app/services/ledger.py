@@ -30,6 +30,8 @@ class LedgerFilters:
     max_cents: int | None = None
     text: str | None = None
     uncategorized: bool = False
+    #: Only accounts on (True) or off (False) the budget; None for both.
+    on_budget: bool | None = None
 
 
 @dataclass(slots=True)
@@ -90,6 +92,12 @@ def _apply_filters(query: Select, filters: LedgerFilters) -> Select:
                 select(TransactionSplit.transaction_id).where(
                     TransactionSplit.category_id.is_(None)
                 )
+            )
+        )
+    if filters.on_budget is not None:
+        query = query.where(
+            Transaction.account_id.in_(
+                select(Account.id).where(Account.on_budget.is_(filters.on_budget))
             )
         )
     if filters.text:

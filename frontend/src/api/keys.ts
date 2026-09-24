@@ -1,3 +1,5 @@
+import type { LedgerFilters } from './transactions'
+
 /** Every TanStack Query key in one place so invalidation stays predictable. */
 
 export const queryKeys = {
@@ -12,4 +14,11 @@ export const queryKeys = {
   accounts: ['accounts'] as const,
   categoryGroups: ['category-groups'] as const,
   payees: ['payees'] as const,
+  balances: ['balances'] as const,
+  transactions: ['transactions'] as const,
+  budgets: ['budget'] as const,
+  budget: (periodId: number | 'current') => ['budget', periodId] as const,
+  dashboard: ['dashboard'] as const,
+  ledger: (accountId: number | null, filters: LedgerFilters) =>
+    ['transactions', { accountId, filters }] as const,
 }

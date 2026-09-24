@@ -88,6 +88,50 @@ class TestPayeeUsage:
         assert row["total_spent_cents"] == 1234
         assert row["last_used"] == "2026-09-01"
 
+    def test_autofill_comes_from_the_newest_transaction(self, auth_client, checking, group):
+        category = make_category(auth_client, group, "Groceries")
+        payee = auth_client.post(PAYEES, json={"name": "Kroger"}, headers=HEADERS).json()
+        add(auth_client, checking, -1000, payee_id=payee["id"], date="2026-08-01")
+        add(
+            auth_client,
+            checking,
+            -4321,
+            payee_id=payee["id"],
+            splits=[{"amount_cents": -4321, "category_id": category["id"]}],
+        )
+
+        row = auth_client.get(PAYEES).json()["items"][0]
+
+        assert row["last_category_id"] == category["id"]
+        assert row["last_amount_cents"] == -4321
+
+    def test_a_split_newest_transaction_autofills_no_category(self, auth_client, checking, group):
+        category = make_category(auth_client, group, "Groceries")
+        payee = auth_client.post(PAYEES, json={"name": "Target"}, headers=HEADERS).json()
+        add(
+            auth_client,
+            checking,
+            -3000,
+            payee_id=payee["id"],
+            splits=[
+                {"amount_cents": -2000, "category_id": category["id"]},
+                {"amount_cents": -1000, "category_id": None},
+            ],
+        )
+
+        row = auth_client.get(PAYEES).json()["items"][0]
+
+        assert row["last_category_id"] is None
+        assert row["last_amount_cents"] == -3000
+
+    def test_an_unused_payee_has_nothing_to_autofill(self, auth_client):
+        auth_client.post(PAYEES, json={"name": "New"}, headers=HEADERS)
+
+        row = auth_client.get(PAYEES).json()["items"][0]
+
+        assert row["last_category_id"] is None
+        assert row["last_amount_cents"] is None
+
     def test_a_payee_with_transactions_cannot_be_deleted(self, auth_client, checking):
         payee = auth_client.post(PAYEES, json={"name": "Kroger"}, headers=HEADERS).json()
         add(auth_client, checking, -1000, payee_id=payee["id"])
