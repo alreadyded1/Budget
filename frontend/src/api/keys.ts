@@ -24,6 +24,8 @@ export const queryKeys = {
   rules: ['rules'] as const,
   reconcile: ['reconcile'] as const,
   reports: ['reports'] as const,
+  goals: ['goals'] as const,
+  goalList: (archived: boolean) => ['goals', { archived }] as const,
   report: (name: string, query: string) => ['reports', name, query] as const,
   worksheet: (accountId: number, statementDate: string) =>
     ['reconcile', 'worksheet', accountId, statementDate] as const,

@@ -11,6 +11,7 @@ from app.models.account import (
 from app.models.base import Base, TimestampMixin, utcnow
 from app.models.budget import PeriodPlan
 from app.models.category import GROUP_KINDS, Category, CategoryGroup
+from app.models.goal import GOAL_TYPES, Goal
 from app.models.imports import ImportBatch, ImportProfile, ImportStagedRow, Rule
 from app.models.notification import NOTIFICATION_KINDS, NotificationLog
 from app.models.pay_schedule import PayPeriod, PaySchedule
@@ -54,6 +55,8 @@ __all__ = [
     "Rule",
     "PaySchedule",
     "Payee",
+    "Goal",
+    "GOAL_TYPES",
     "Reconciliation",
     "Session",
     "Settings",

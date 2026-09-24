@@ -11,6 +11,7 @@ from app.api.v1 import (
     auth,
     budget,
     categories,
+    goals,
     health,
     imports,
     notifications,
@@ -42,6 +43,7 @@ protected.include_router(payees.router)
 protected.include_router(transactions.router)
 protected.include_router(reconcile.router)
 protected.include_router(reports.router)
+protected.include_router(goals.router)
 protected.include_router(budget.router)
 protected.include_router(subscriptions.router)
 protected.include_router(notifications.router)

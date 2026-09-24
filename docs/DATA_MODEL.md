@@ -173,10 +173,11 @@ occurrences are regenerated. Paid and skipped rows are never touched.
 - `account_id` → accounts; savings goals
 - `category_id` → categories; sinking funds
 - `starting_balance_cents`
+- `start_date` — the first day of the pay period the goal counts from (D-088)
 - `is_archived`, `notes`
 
-Sinking fund balance = `starting_balance_cents` + Σ `planned_cents` for its category in periods that have
-started − Σ actual spending in that category.
+Sinking fund balance = `starting_balance_cents` + Σ `planned_cents` for its category in periods from
+`start_date` through the period being viewed − Σ actual spending in that category over the same days.
 
 **debt_plan** (single row)
 - `strategy` — snowball | avalanche | custom

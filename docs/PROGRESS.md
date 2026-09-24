@@ -1,8 +1,8 @@
 # Progress
 
-**Current phase:** Phase 13 — Goals and sinking funds (not started)
-**Next step:** Plan Phase 13 per docs/BUILD_PLAN.md and SPEC §13 — savings goals and sinking funds,
-the per-period contribution, on-track status and projected completion.
+**Current phase:** Phase 14 — Net worth and debt payoff (not started)
+**Next step:** Plan Phase 14 per docs/BUILD_PLAN.md and SPEC §14 — net worth history and breakdown
+(which also fills the Reports "Net worth" tab), and the debt payoff simulator.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -20,7 +20,7 @@ the per-period contribution, on-track status and projected completion.
 | 10 | Import and rules | ✅ done | 2026-09-24 |
 | 11 | Reconciliation | ✅ done | 2026-09-24 |
 | 12 | Reports | ✅ done | 2026-09-24 |
-| 13 | Goals and sinking funds | ⬜ | |
+| 13 | Goals and sinking funds | ✅ done | 2026-09-24 |
 | 14 | Net worth and debt payoff | ⬜ | |
 | 15 | Receipt attachments | ⬜ | |
 | 16 | Polish and hardening | ⬜ | |
@@ -39,6 +39,27 @@ check could run. The server side of it is verified (see the session log below).
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 13 (Goals and sinking funds)
+- **Done:**
+  - Migration `0011`: `goals` (DATA_MODEL, plus `start_date`).
+  - `app/domain/goals.py`: fund balance, periods until the target, needed per period (rounded up),
+    projected completion, status, average change. Pure and tested (13 tests).
+  - `app/services/goals.py` and `/api/v1/goals`: CRUD, archive, computed progress, and
+    `POST /goals/{id}/use-suggested`. Goals register as a category reference.
+  - Planner: fund rows carry `fund_balance_cents` through the viewed period and are overspent only
+    below zero (D-088, D-089); the optimistic plan edit moves the fund balance too.
+  - UI: `/goals` (in the sidebar) with a card per goal (progress bar, fund balance or saved amount,
+    still to go, needed per pay period, projection, status in words), "Use suggested contribution",
+    archive, delete, and a keyboard-first form. The planner shows "Fund $X" on fund rows, red below zero.
+  - Decisions D-088 to D-093.
+  - Tests: 492 backend (+22: 13 domain, 9 API covering both Done-when boxes), 177 frontend (+8),
+    7 E2E (+1: fund from the keyboard, suggestion into the plan, fund balance on the planner).
+- **Deviations from plan:**
+  - `goals.start_date` was added to DATA_MODEL's table (D-088).
+- **Known issues:**
+  - After merging, run `update.sh` on the LXC: it applies migration `0011`.
+- **Next step:** Plan Phase 14 (net worth and debt payoff).
 
 ### 2026-09-24 — Phase 12 (Reports)
 - **Done:**
@@ -533,7 +554,6 @@ check could run. The server side of it is verified (see the session log below).
 - Group `GET /balances` into one query if the account list ever grows — Phase 16.
 - Group the payee usage and autofill queries into one query for the payee list — Phase 16.
 - Extend the E2E suite beyond the ledger and planner flows — Phase 16 (ARCHITECTURE §Testing).
-- Sinking-fund carryover in the planner — Phase 13.
 - Collapsible groups on the planner — Phase 16.
 - Re-apply a rule created during review to the batch's other staged rows — Phase 16.
 - A reconciliation report (statement vs. ledger per period), if wanted — Phase 16.

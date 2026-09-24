@@ -128,3 +128,50 @@ describe('progress', () => {
     expect(progress(0, 0)).toBe(0)
   })
 })
+
+describe('withPlanned on a sinking fund', () => {
+  it('moves the fund balance with the plan and flags only a negative balance', () => {
+    const fundLine: PlanLine = {
+      category_id: 7,
+      name: 'Car insurance',
+      kind: 'expense',
+      planned_cents: 5000,
+      actual_cents: 12000,
+      remaining_cents: -7000,
+      overspent: false,
+      is_sinking_fund: true,
+      is_hidden: false,
+      note: null,
+      committed_cents: 0,
+      fund_balance_cents: 8000,
+    }
+    const view = {
+      income: [],
+      expense: [
+        {
+          id: 1,
+          name: 'Living',
+          kind: 'expense' as const,
+          planned_cents: 5000,
+          actual_cents: 12000,
+          remaining_cents: -7000,
+          lines: [fundLine],
+        },
+      ],
+    } as unknown as BudgetView
+    const raised = withPlanned(view, new Map([[7, 9000]])).expense[0].lines[0]
+    expect(raised.fund_balance_cents).toBe(12000)
+    expect(raised.overspent).toBe(false)
+    const cut = withPlanned(view, new Map([[7, 0]])).expense[0].lines[0]
+    expect(cut.fund_balance_cents).toBe(3000)
+    const deep = withPlanned(
+      {
+        ...view,
+        expense: [{ ...view.expense[0], lines: [{ ...fundLine, fund_balance_cents: 2000 }] }],
+      },
+      new Map([[7, 0]]),
+    ).expense[0].lines[0]
+    expect(deep.fund_balance_cents).toBe(-3000)
+    expect(deep.overspent).toBe(true)
+  })
+})
