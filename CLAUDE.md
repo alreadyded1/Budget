@@ -43,6 +43,7 @@ Runs natively on a Debian 13 LXC in Proxmox under systemd, behind NGINX Proxy Ma
 ## Commands (Phase 0 creates these; keep this list accurate)
 - `make dev` — backend with reload on :8000 and Vite dev server on :5173 (proxies `/api`)
 - `make test` — pytest + vitest
+- `make e2e` — Playwright E2E against a throwaway server and database (needs Chromium: `npx playwright install chromium`, or `PB_CHROMIUM_PATH`)
 - `make lint` — ruff + eslint + `tsc --noEmit`
 - `make fmt` — ruff format + prettier
 - `make migrate` — `alembic upgrade head`

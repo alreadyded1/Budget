@@ -24,6 +24,9 @@ class PayeeUsage:
     transaction_count: int = 0
     last_used: date | None = None
     total_spent_cents: int = 0
+    #: From the newest transaction, for the entry row's autofill (SPEC §7).
+    last_category_id: int | None = None
+    last_amount_cents: int | None = None
 
 
 #: Phase 4 replaces this with a real query over transactions.

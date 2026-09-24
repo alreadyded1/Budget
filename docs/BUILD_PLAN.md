@@ -141,11 +141,11 @@ Build SPEC §7 completely. Split into 5a/5b if needed.
 - Add Playwright with one E2E test of the full keyboard flow.
 
 **Done when**
-- [ ] 10 transactions (3 payees, one of them new, 1 split, 1 transfer) can be entered without touching the
+- [x] 10 transactions (3 payees, one of them new, 1 split, 1 transfer) can be entered without touching the
       mouse.
-- [ ] The E2E test asserts there is no document navigation. Network activity is fetch/XHR only.
-- [ ] Balances update instantly. A forced server error rolls back and restores the entry row.
-- [ ] Unit tests pass for the date shortcut and amount parsers, including edge cases.
+- [x] The E2E test asserts there is no document navigation. Network activity is fetch/XHR only.
+- [x] Balances update instantly. A forced server error rolls back and restores the entry row.
+- [x] Unit tests pass for the date shortcut and amount parsers, including edge cases.
 
 ## Phase 6 — Budget planner and dashboard
 - period_plans.

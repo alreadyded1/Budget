@@ -42,6 +42,32 @@ class TransactionResult:
     deleted_ids: list[int] = field(default_factory=list)
 
 
+def transfer_partner_accounts(db: DbSession, rows: list[Transaction]) -> dict[int, int]:
+    """For each transfer leg in `rows`, the account on the other side of it.
+
+    The ledger shows a transfer as "Transfer: Savings", which needs the partner leg's
+    account even when only one leg is on the page. One query for the whole page.
+    """
+    transfer_ids = {row.transfer_id for row in rows if row.transfer_id is not None}
+    if not transfer_ids:
+        return {}
+    legs = db.execute(
+        select(Transaction.id, Transaction.transfer_id, Transaction.account_id).where(
+            Transaction.transfer_id.in_(transfer_ids)
+        )
+    ).all()
+    by_transfer: dict[str, list[tuple[int, int]]] = {}
+    for leg_id, transfer_id, account_id in legs:
+        by_transfer.setdefault(transfer_id, []).append((leg_id, account_id))
+
+    partners: dict[int, int] = {}
+    for row in rows:
+        for leg_id, account_id in by_transfer.get(row.transfer_id or "", []):
+            if leg_id != row.id:
+                partners[row.id] = account_id
+    return partners
+
+
 def get_transaction(db: DbSession, transaction_id: int) -> Transaction:
     transaction = db.get(Transaction, transaction_id)
     if transaction is None:

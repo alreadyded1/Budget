@@ -1,10 +1,8 @@
 # Progress
 
-**Current phase:** Phase 5 — Ledger UI and fast entry (not started)
-**Next step:** Plan Phase 5 per docs/BUILD_PLAN.md — the ledger screen: columns per SPEC §7, the pinned
-new-entry row, the tab order and Enter/Esc behaviour, DateInput / AmountInput / Combobox keyboard
-primitives, optimistic insert with running-balance recalculation and rollback on error, and the Playwright
-setup that proves no document navigation happens.
+**Current phase:** Phase 6 — Budget planner and dashboard (not started)
+**Next step:** Plan Phase 6 per docs/BUILD_PLAN.md — planned vs. actual per pay period (SPEC §8), the
+dashboard, and prorating planned amounts across a transition period (parked since Phase 2).
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -14,7 +12,7 @@ setup that proves no document navigation happens.
 | 2 | Pay schedule engine | ✅ done | 2026-09-22 |
 | 3 | Accounts, categories, payees | ✅ done † | 2026-09-23 |
 | 4 | Transactions backend | ✅ done | 2026-09-23 |
-| 5 | Ledger UI and fast entry | ⬜ | |
+| 5 | Ledger UI and fast entry | ✅ done | 2026-09-24 |
 | 6 | Budget planner and dashboard | ⬜ | |
 | 7 | Deploy MVP to LXC | ⬜ | |
 | 8 | Subscriptions and bill calendar | ⬜ | |
@@ -46,6 +44,58 @@ registered transactions and proved that part; the box closes when subscriptions 
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 5 (Ledger UI and fast entry)
+- **Done:** (built in one go rather than as 5a/5b, at the user's request)
+  - Pure helpers with tests: `lib/dates.ts` (`t`, `+`/`-`, `15`, `3/15`, full dates, impossible dates
+    refused), `lib/amountExpr.ts` (exact BigInt fractions, `+ - * /` and brackets, rounded half away
+    from zero once at the end), `lib/fuzzy.ts`, `features/ledger/draft.ts` (entry row → API call, with
+    the field to focus on any error) and `features/ledger/ledgerCache.ts` (optimistic insert, replace,
+    remove, running balances, balances).
+  - Keyboard primitives in `src/components/`: `DateInput`, `AmountInput`, `Combobox` (Tab/Enter pick,
+    two-step Esc, "Create 'X'", grouped categories, pinned "Split…"), and `useRowNavigation`.
+  - The ledger at `/transactions` (All accounts, with an Account field first) and
+    `/transactions/:accountId`: account tabs with balances, the pinned entry row with the SPEC §7 tab
+    order, payee create-on-save, category autofill (pinned default, else last used), optional
+    last-amount prefill, Outflow/Inflow exclusivity and the leading `+`, the split editor with a live
+    remaining amount that carries the leftover into a new line, transfers by typing
+    "Transfer: Savings", inline edit (Enter/Esc), `j`/`k`/arrows, `c`, Delete with a 5-second Undo
+    (and `u`), `n`, `/`, the `?` overlay, the filter bar (text, dates, category, payee, status, amount
+    range) with a filtered total, and a virtualized list that loads older pages as it scrolls.
+  - Every mutation is optimistic: the row and balances change at once, the server's rows and balances
+    replace them, and an error restores the snapshot, refills the row as typed, and shows a toast.
+    Reconciled edits and deletes ask for confirmation and retry with `confirm=true`.
+  - Backend: payees carry `last_category_id` / `last_amount_cents` (D-049) and every transaction carries
+    `transfer_account_id` (D-050). No migration.
+  - The Accounts page shows real balances and links each account to its ledger.
+  - Playwright: `make e2e` builds the SPA and runs it against a throwaway database (`e2e/serve.sh`).
+    The one test enters 10 transactions from the keyboard (3 payees, one new; a split; a transfer; a
+    refund), checks balances on screen and on the server, forces a 500 and checks the rollback and
+    refill, then edits, clears, deletes and undoes — and asserts there was no document request, only
+    fetch/XHR, and that the page never reloaded.
+  - Tests: 238 backend (+4), 98 frontend (+68, including 13 Testing Library tests of tab order and the
+    entry row's keys), 1 E2E.
+- **Deviations from plan:**
+  - Built as one phase instead of 5a/5b, as asked.
+  - The keyboard details the spec left open are recorded in D-053, among them `t` always meaning today,
+    Esc on an empty row stepping out of it, and `u` for undo.
+  - Found by the E2E test: the always-visible "Split…" option became the only, highlighted choice after
+    a category typo, so Tab quietly split the row. Pinned options now filter like the rest.
+  - Found by the E2E test: moving focus to Inflow on a leading `+` a tick late let the next keystroke land
+    in Outflow. Existing fields are now focused synchronously.
+- **Known issues:**
+  - Undoing the delete of a transfer that crosses the budget boundary needs the category, which only the
+    on-budget leg carries. Undo from that leg's ledger works; from the tracking account's ledger (for
+    example the car loan) the server refuses the re-create and a toast says why.
+  - The payee list now runs three small queries per payee (usage, newest transaction, its splits). Fine
+    for a household; worth one grouped query alongside `GET /balances` in Phase 16.
+  - Changing a transaction into a transfer (or back), or a transfer's partner account, means delete and
+    re-enter (D-053).
+  - Combobox dropdowns in an inline-edit row near the bottom of the list scroll with the list rather than
+    floating above it.
+  - The E2E test needs a Chromium: `npx playwright install chromium` on the dev machine, or
+    `PB_CHROMIUM_PATH`. It is not part of `make test`.
+- **Next step:** Plan Phase 6 (budget planner and dashboard).
 
 ### 2026-09-23 — Phase 4 (Transactions backend)
 - **Done:**
@@ -253,8 +303,6 @@ registered transactions and proved that part; the box closes when subscriptions 
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
-- Playwright E2E setup (native install, no containers) — Phase 5 per BUILD_PLAN.
-- Testing Library component tests for tab order and the entry row — Phase 5.
 - `deploy/restore.sh`, the firewall and NPM steps, and the first real LXC deployment — Phase 7
   (install.sh and update.sh were pulled forward on request, 2026-09-23; see D-045).
 - Expired-session sweep inside `pb run-daily` — Phase 9.
@@ -262,6 +310,8 @@ registered transactions and proved that part; the box closes when subscriptions 
 - Prorating planned amounts across a transition period — Phase 6 (budget planner).
 - Register subscriptions and rules with `app/services/references.py` — Phases 8 and 10 (transactions done).
 - Group `GET /balances` into one query if the account list ever grows — Phase 16.
+- Group the payee usage and autofill queries into one query for the payee list — Phase 16.
+- Extend the E2E suite beyond the ledger's keyboard flow — Phase 16 (ARCHITECTURE §Testing).
 - Transaction columns deferred to their own phases: subscription_occurrence_id (8), import_batch_id and
   import_key (10), reconciliation_id (11).
 - ntfy settings UI and the runtime HTTP client choice — Phase 9.

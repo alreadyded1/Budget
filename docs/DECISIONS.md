@@ -272,3 +272,52 @@ old process — confusing, and the next restart would run untested code against 
 → On any failure after the fetch, the checkout is reset to the commit that was running and the service
 is never restarted. The database is untouched and a backup was taken first. A dirty working tree stops
 the update before anything is fetched.
+
+## D-048 Phase 5 dependencies
+- `@tanstack/react-virtual` — virtualizes the ledger so thousands of rows scroll smoothly (SPEC §7);
+  same family as TanStack Query, headless, no styling to fight.
+- `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`, `jsdom` (dev) — the
+  component tests ARCHITECTURE asks for (tab order, entry-row keys). jsdom is set per file with a
+  `@vitest-environment jsdom` docblock so the pure tests stay on the faster node environment.
+- `@playwright/test` (dev) — the keyboard E2E. Browsers install natively with
+  `npx playwright install chromium`; `PB_CHROMIUM_PATH` points at an existing Chromium instead.
+
+## D-049 The payee list carries the autofill values
+SPEC §7 fills the category (pinned default, else last used) and optionally the last amount when a payee
+is picked. → `PayeeOut` gains `last_category_id` and `last_amount_cents`, taken from the payee's newest
+transaction (`date desc, id desc`). A newest transaction that is split autofills no category, since
+there is no single one to repeat. Typeahead then needs nothing beyond the cached payee list.
+
+## D-050 Transactions name their transfer partner's account
+A single-account ledger shows only one leg of a transfer but must read "Transfer: Savings".
+→ `TransactionOut.transfer_account_id` is filled with one grouped query per response (ledger page or
+mutation). Nothing is stored; the partner is still found through `transfer_id`.
+
+## D-051 A new payee is created by a second call just before the transaction
+SPEC §7 says a new payee is "created when the row is saved". → The create mutation posts the payee,
+then the transaction, inside one mutation, so the optimistic row and its rollback cover both. If the
+transaction is then refused, the payee stays: it is harmless, it is what was typed, and the refilled
+row will reuse it on the next Enter. A 409 on the payee (someone else just made it) is resolved by
+looking it up instead of failing.
+
+## D-052 Running balances are recomputed from the account's current balance
+After an optimistic change the ledger's running balances are rewritten as "current balance minus
+everything above this row". The ledger is loaded newest first from the top, so this is exact for an
+unfiltered single-account view and needs no server round trip. Filtered views and All accounts keep
+the server's values (null for All accounts), and a filtered view is refetched after each mutation
+because only the server knows what the filter now includes.
+
+## D-053 Keyboard details the spec left open
+- `t` always means today in a date field, and every date shortcut leaves the date selected so the next
+  keystroke replaces it. `-` only steps a day when the field already reads as a date, so typing an ISO
+  date still works.
+- "Split…" and other pinned combobox options are filtered like any other option. Otherwise a typo in
+  Category left "Split…" as the only, highlighted choice, and Tab silently split the row.
+- Fields that exist are focused synchronously (a leading `+` in Outflow jumps to Inflow before the next
+  keystroke arrives); only a split line that has just been added waits for React to render it.
+- Esc on an empty entry row steps out of it, so the row shortcuts (`j`, `k`, `c`, …) are two Esc
+  presses away from anywhere. `u` undoes the last delete, alongside the toast's Undo button.
+- Amount filters are signed, like the ledger: outflows are negative.
+- Changing a transfer into a plain transaction (or the reverse), or moving a transfer to a different
+  partner account, is refused inline with a message to delete and re-enter it. The backend has no
+  operation for either, and faking one as delete-plus-create would lose the row's history.

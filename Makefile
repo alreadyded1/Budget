@@ -1,6 +1,6 @@
 # Payday Budget — native tooling only. No containers anywhere in this repo.
 .DEFAULT_GOAL := help
-.PHONY: help dev dev-backend dev-frontend test test-backend test-frontend lint lint-backend \
+.PHONY: help dev dev-backend dev-frontend test test-backend test-frontend e2e lint lint-backend \
         lint-frontend fmt migrate build install clean
 
 BACKEND  := backend
@@ -36,6 +36,9 @@ test-backend:
 
 test-frontend:
 	$(NPM) run test
+
+e2e: ## Playwright keyboard E2E against a throwaway server on :8765 (builds the SPA)
+	$(NPM) run e2e
 
 lint: lint-backend lint-frontend ## ruff + eslint + tsc --noEmit
 

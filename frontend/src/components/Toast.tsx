@@ -2,21 +2,26 @@ import { useCallback, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { ToastContext } from './toastContext'
-import type { ToastTone } from './toastContext'
+import type { ToastAction, ToastOptions, ToastTone } from './toastContext'
 
-type Toast = { id: number; message: string; tone: ToastTone }
+type Toast = { id: number; message: string; tone: ToastTone; action?: ToastAction }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const nextId = useRef(1)
 
-  const show = useCallback((message: string, tone: ToastTone = 'error') => {
-    const id = nextId.current++
-    setToasts((current) => [...current, { id, message, tone }])
-    window.setTimeout(() => {
-      setToasts((current) => current.filter((toast) => toast.id !== id))
-    }, 5000)
+  const dismiss = useCallback((id: number) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id))
   }, [])
+
+  const show = useCallback(
+    (message: string, tone: ToastTone = 'error', options: ToastOptions = {}) => {
+      const id = nextId.current++
+      setToasts((current) => [...current, { id, message, tone, action: options.action }])
+      window.setTimeout(() => dismiss(id), options.durationMs ?? 5000)
+    },
+    [dismiss],
+  )
 
   return (
     <ToastContext.Provider value={show}>
@@ -36,7 +41,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 : 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100',
             ].join(' ')}
           >
-            {toast.message}
+            <div className="flex items-center justify-between gap-3">
+              <span>{toast.message}</span>
+              {toast.action && (
+                <button
+                  type="button"
+                  className="shrink-0 rounded px-2 py-0.5 font-medium underline outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  onClick={() => {
+                    toast.action?.onClick()
+                    dismiss(toast.id)
+                  }}
+                >
+                  {toast.action.label}
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

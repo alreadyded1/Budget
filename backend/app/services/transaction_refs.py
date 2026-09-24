@@ -61,11 +61,23 @@ def payee_usage(db: DbSession, payee_id: int) -> payees_service.PayeeUsage:
     count, last_used, total = row
     if isinstance(last_used, str):  # SQLite hands dates back as text through func.max
         last_used = date.fromisoformat(last_used)
+
+    latest = db.scalars(
+        select(Transaction)
+        .where(Transaction.payee_id == payee_id)
+        .order_by(Transaction.date.desc(), Transaction.id.desc())
+        .limit(1)
+    ).first()
+    # A split transaction has no single category to repeat, so it autofills none.
+    last_category = latest.splits[0].category_id if latest and len(latest.splits) == 1 else None
+
     return payees_service.PayeeUsage(
         transaction_count=int(count or 0),
         last_used=last_used,
         # Spending is negative in the ledger; the stat reads better as a positive total.
         total_spent_cents=abs(int(total or 0)),
+        last_category_id=last_category,
+        last_amount_cents=latest.amount_cents if latest else None,
     )
 
 
