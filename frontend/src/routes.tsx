@@ -10,6 +10,7 @@ import { BudgetPage } from './features/budget/BudgetPage'
 import { CalendarPage } from './features/calendar/CalendarPage'
 import { CategoriesPage } from './features/categories/CategoriesPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { GoalsPage } from './features/goals/GoalsPage'
 import { ImportPage } from './features/import/ImportPage'
 import { LedgerPage } from './features/ledger/LedgerPage'
 import { PayeesPage } from './features/payees/PayeesPage'
@@ -46,6 +47,7 @@ export function AppRoutes() {
         <Route index element={<DashboardPage />} />
         <Route path="budget" element={<BudgetPage />} />
         <Route path="budget/:periodId" element={<BudgetPage />} />
+        <Route path="goals" element={<GoalsPage />} />
         <Route path="transactions" element={<LedgerPage />} />
         <Route path="transactions/:accountId" element={<LedgerPage />} />
         <Route path="import" element={<ImportPage />} />

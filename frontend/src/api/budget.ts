@@ -26,6 +26,8 @@ export type PlanLine = {
   note: string | null
   /** Bills due in the period for this category. */
   committed_cents: number
+  /** A sinking fund's balance through this period (categories with a fund goal). */
+  fund_balance_cents?: number | null
 }
 
 export type PlanGroup = {

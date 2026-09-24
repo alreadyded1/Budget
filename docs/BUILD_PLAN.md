@@ -250,8 +250,8 @@ Implement DEPLOYMENT.md.
 - The sinking fund balance appears on its category row in the planner.
 
 **Done when**
-- [ ] Sinking fund balance math is tested across several periods, including overspending.
-- [ ] Regular categories still reset every period.
+- [x] Sinking fund balance math is tested across several periods, including overspending.
+- [x] Regular categories still reset every period.
 
 ## Phase 14 — Net worth and debt payoff
 - Net worth: current total, month-end history, breakdown by type. Manual valuation entries.

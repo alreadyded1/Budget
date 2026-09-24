@@ -54,11 +54,17 @@ export function withPlanned(view: BudgetView, amounts: Map<number, number>): Bud
       lines: group.lines.map((line) => {
         const planned = amounts.get(line.category_id)
         if (planned === undefined) return line
+        const fund =
+          line.fund_balance_cents === null || line.fund_balance_cents === undefined
+            ? null
+            : line.fund_balance_cents + planned - line.planned_cents
         return {
           ...line,
           planned_cents: planned,
           remaining_cents: planned - line.actual_cents,
-          overspent: isOverspent(line.kind, planned, line.actual_cents),
+          // A sinking fund is overspent only when its balance is below zero (D-089).
+          overspent: fund === null ? isOverspent(line.kind, planned, line.actual_cents) : fund < 0,
+          fund_balance_cents: fund,
         }
       }),
     })

@@ -24,6 +24,8 @@ class PlanLineOut(BaseModel):
     is_hidden: bool
     note: str | None
     committed_cents: int = 0
+    #: Sinking funds with a goal: the fund's balance through this period.
+    fund_balance_cents: int | None = None
 
 
 class PlanGroupOut(BaseModel):

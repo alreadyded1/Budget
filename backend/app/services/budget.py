@@ -28,6 +28,7 @@ from app.models import (
     TransactionSplit,
 )
 from app.services import categories as categories_service
+from app.services import goals as goals_service
 from app.services import subscriptions as subscriptions_service
 
 
@@ -45,6 +46,8 @@ class PlanLine:
     note: str | None
     #: Bills due in the period for this category (SPEC §8, §9).
     committed_cents: int = 0
+    #: A sinking fund's balance through this period (D-088), for categories with a fund goal.
+    fund_balance_cents: int | None = None
 
 
 @dataclass(slots=True)
@@ -299,6 +302,7 @@ def build_view(db: DbSession, period: PayPeriod) -> BudgetView:
     plans = _plan_rows(db, period.id)
     totals = split_totals(db, period.start_date, period.end_date)
     committed = subscriptions_service.committed_by_category(db, period.start_date, period.end_date)
+    funds = goals_service.fund_goals_by_category(db)
 
     income: list[PlanGroup] = []
     expense: list[PlanGroup] = []
@@ -314,6 +318,13 @@ def build_view(db: DbSession, period: PayPeriod) -> BudgetView:
             # A hidden category still shows while it has money planned or moving.
             if hidden and planned == 0 and actual == 0 and not committed.get(category.id):
                 continue
+            fund = funds.get(category.id) if category.is_sinking_fund else None
+            balance = goals_service.fund_balance(db, fund, period) if fund else None
+            # A fund saves for months and spends in one period: only a negative balance is
+            # overspending (D-089).
+            overspent = (
+                balance < 0 if balance is not None else math.is_overspent(kind, planned, actual)
+            )
             line = PlanLine(
                 category_id=category.id,
                 name=category.name,
@@ -321,7 +332,8 @@ def build_view(db: DbSession, period: PayPeriod) -> BudgetView:
                 planned_cents=planned,
                 actual_cents=actual,
                 remaining_cents=math.remaining(planned, actual),
-                overspent=math.is_overspent(kind, planned, actual),
+                overspent=overspent,
+                fund_balance_cents=balance,
                 is_sinking_fund=category.is_sinking_fund,
                 is_hidden=hidden,
                 note=row.note if row else None,

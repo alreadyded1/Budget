@@ -430,8 +430,18 @@ function Row({
     >
       <div className="truncate pl-3">
         {line.name}
-        {line.is_sinking_fund && (
-          <span className="ml-1.5 text-xs text-slate-400">sinking fund</span>
+        {line.fund_balance_cents !== null && line.fund_balance_cents !== undefined ? (
+          <span
+            className={`ml-1.5 text-xs ${line.fund_balance_cents < 0 ? 'font-medium text-rose-600' : 'text-slate-500'}`}
+            title="Sinking fund balance through this period"
+            data-testid={`fund-${line.name}`}
+          >
+            Fund {formatCents(line.fund_balance_cents)}
+          </span>
+        ) : (
+          line.is_sinking_fund && (
+            <span className="ml-1.5 text-xs text-slate-400">sinking fund</span>
+          )
         )}
         {line.is_hidden && <span className="ml-1.5 text-xs text-slate-400">hidden</span>}
         {line.committed_cents > 0 && (

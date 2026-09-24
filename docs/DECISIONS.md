@@ -552,3 +552,42 @@ ledger's bundle does not carry it. CSV is built from the rows on screen: UTF-8, 
 as plain signed decimals (-45.20), dates as YYYY-MM-DD, files named `<report>_<from>_<to>.csv`. Chart
 colours are the dataviz reference palette's categorical slots, fixed order, stepped for dark mode, with
 every chart paired with its table.
+
+## D-088 A sinking fund counts from its start period (confirmed with the user, 2026-09-24)
+Each goal has a `start_date`, rounded back to the start of its pay period (the current one by default);
+the starting balance is what was set aside by then. The fund's balance through a period is the starting
+balance + every plan for its category from the start period through that period − the category's net
+on-budget spending over the same days. A period's plan counts in full from its first day (money set
+aside on payday). Spending before the start does not count. The planner shows the balance through the
+period being viewed, so a future period shows where the plans lead.
+
+## D-089 A sinking fund is overspent only below zero (confirmed with the user, 2026-09-24)
+Saving for months and spending in one period is the point, so a fund's row is not flagged when one
+period's spending beats that period's plan; it is flagged when the fund balance is negative. The balance
+may go negative and refunds add back. Categories without a fund goal keep the per-period rule.
+
+## D-090 Needed per period rounds up and replaces this period's plan (confirmed with the user, 2026-09-24)
+Needed = (target − progress) ÷ pay periods from the current one through the one holding the target
+date, rounded up to the cent so the target is met. For a sinking fund this period's own plan is left out
+of the progress, so "Use suggested contribution" writes the figure into this period's plan instead of
+adding to it; pressing it again changes nothing. No target date, no figure; a past target date asks for
+the whole remainder now.
+
+## D-091 On track means projected by the target date (confirmed with the user, 2026-09-24)
+Projection at the current rate: a sinking fund's rate is this period's plan; a savings goal's is its
+account's average change over the last 3 completed pay periods (fewer if the schedule is younger). The
+projected date is the end of the period in which the rate reaches the target, extending the schedule by
+its average period length past the last generated period. On track = projected on or before the target
+date; a rate of zero or less shows "Not at this rate".
+
+## D-092 Savings goals: asset accounts, optional plan category (confirmed with the user, 2026-09-24)
+Progress is the account's current balance minus the goal's starting amount. Liability accounts are
+refused (paying down debt is Phase 14). A transfer between on-budget accounts has no category, so a
+savings goal may name an optional expense "plan category"; "Use suggested contribution" appears only
+when it has one.
+
+## D-093 One fund goal per category, and creating it flags the category
+A sinking-fund goal needs an expense category that no other fund goal uses (409 `sinking_fund_taken`).
+Creating it sets the category's `is_sinking_fund`; archiving or deleting the goal leaves the flag. The
+planner shows a fund balance only for categories with a fund goal. Deleting a goal's category asks for a
+reassignment first (goals register as a category reference).
