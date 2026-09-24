@@ -1,5 +1,5 @@
 [Unit]
-Description=Payday Budget daily job
+Description=Payday Budget daily job (hourly: timelines, auto-post, reminders)
 After=payday-budget.service
 
 [Service]

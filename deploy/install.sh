@@ -167,18 +167,17 @@ ok "schema at $(runuser -u "${APP_USER}" -- sqlite3 "${PB_DATABASE_PATH}" 'selec
 
 # ------------------------------------------------------------------ 8. the units
 step "Installing systemd units"
-install -m 0644 "${APP_DIR}/deploy/systemd/payday-budget.service" /etc/systemd/system/
+# Every unit in deploy/systemd: the app, the backup and daily jobs with their timers,
+# and the failure-alert template the backup calls through OnFailure=.
+install -m 0644 "${APP_DIR}"/deploy/systemd/*.service "${APP_DIR}"/deploy/systemd/*.timer \
+  /etc/systemd/system/
 if [[ "${PORT}" != "8000" ]]; then
   sed -i "s/--port 8000/--port ${PORT}/" /etc/systemd/system/payday-budget.service
 fi
 
-# The timers drive `pb backup` (nightly, 02:30) and `pb run-daily` (07:00, Phase 9).
-# Each is enabled only once its command exists, so nothing fails nightly.
+# The timers drive `pb backup` (nightly, 02:30) and `pb run-daily` (hourly). Each is
+# enabled only once its command exists, so nothing fails on a schedule.
 PB_BIN="${APP_DIR}/backend/.venv/bin/pb"
-for job in daily backup; do
-  install -m 0644 "${APP_DIR}/deploy/systemd/payday-budget-${job}.service" /etc/systemd/system/
-  install -m 0644 "${APP_DIR}/deploy/systemd/payday-budget-${job}.timer" /etc/systemd/system/
-done
 systemctl daemon-reload
 install -m 0755 "${APP_DIR}/deploy/pb" /usr/local/bin/pb
 ok "/usr/local/bin/pb (loads ${ENV_FILE}, runs as ${APP_USER})"

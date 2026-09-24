@@ -74,6 +74,9 @@ class Account(TimestampMixin, Base):
     payment_due_day: Mapped[int | None] = mapped_column(Integer, default=None)
 
     low_balance_alert_cents: Mapped[int | None] = mapped_column(Integer, default=None)
+    #: The day the balance last dropped below the alert threshold; cleared once it recovers.
+    #: One alert per dip (D-069).
+    low_balance_since: Mapped[date | None] = mapped_column(Date, default=None)
 
     valuations: Mapped[list["AccountValuation"]] = relationship(
         back_populates="account", cascade="all, delete-orphan"

@@ -13,6 +13,7 @@ import { LedgerPage } from './features/ledger/LedgerPage'
 import { PayeesPage } from './features/payees/PayeesPage'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { GeneralSettingsPage } from './features/settings/GeneralSettingsPage'
+import { NotificationsSettingsPage } from './features/settings/NotificationsSettingsPage'
 import { PayPeriodsPage } from './features/settings/PayPeriodsPage'
 import { PayScheduleSettingsPage } from './features/settings/PayScheduleSettingsPage'
 import { SettingsLayout } from './features/settings/SettingsLayout'
@@ -45,6 +46,7 @@ export function AppRoutes() {
           <Route path="pay-schedule" element={<PayScheduleSettingsPage />} />
           <Route path="pay-periods" element={<PayPeriodsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
+          <Route path="notifications" element={<NotificationsSettingsPage />} />
           <Route path="users" element={<UsersSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />

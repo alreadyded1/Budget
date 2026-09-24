@@ -42,6 +42,7 @@ export type AccountInput = {
   apr_bps?: number | null
   min_payment_cents?: number | null
   payment_due_day?: number | null
+  low_balance_alert_cents?: number | null
 }
 
 export function fetchAccounts(signal?: AbortSignal): Promise<{ items: Account[] }> {

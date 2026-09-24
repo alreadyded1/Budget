@@ -164,4 +164,15 @@ database.
 | Timer | When | Runs | State |
 |---|---|---|---|
 | `payday-budget-backup.timer` | 02:30 | `pb backup` | enabled by `install.sh` |
-| `payday-budget-daily.timer` | 07:00 | `pb run-daily` | installed, enabled automatically by the first `update.sh` after Phase 9 adds the command |
+| `payday-budget-daily.timer` | hourly | `pb run-daily` | enabled by `install.sh`, or by the first `update.sh` after Phase 9 |
+
+`pb run-daily` extends pay periods and bills, auto-posts due bills, and sends reminders, overdue
+notices and low-balance alerts through ntfy once the reminder hour in Settings → Notifications has
+come. Each message goes out once. A failed backup triggers
+`payday-budget-notify-failure@payday-budget-backup.service`, an urgent ntfy alert.
+
+```sh
+systemctl list-timers 'payday-budget*'
+journalctl -u payday-budget-daily -n 20 --no-pager   # one summary line per run
+pb run-daily                                        # run it now
+```

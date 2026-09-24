@@ -11,6 +11,7 @@ from app.models.account import (
 from app.models.base import Base, TimestampMixin, utcnow
 from app.models.budget import PeriodPlan
 from app.models.category import GROUP_KINDS, Category, CategoryGroup
+from app.models.notification import NOTIFICATION_KINDS, NotificationLog
 from app.models.pay_schedule import PayPeriod, PaySchedule
 from app.models.payee import Payee
 from app.models.settings import SETTINGS_ID, Settings
@@ -30,6 +31,7 @@ __all__ = [
     "DEFAULT_ON_BUDGET_TYPES",
     "GROUP_KINDS",
     "LIABILITY_TYPES",
+    "NOTIFICATION_KINDS",
     "OCCURRENCE_STATUSES",
     "SETTINGS_ID",
     "STATUSES",
@@ -41,6 +43,7 @@ __all__ = [
     "Base",
     "Category",
     "CategoryGroup",
+    "NotificationLog",
     "PayPeriod",
     "PeriodPlan",
     "PaySchedule",

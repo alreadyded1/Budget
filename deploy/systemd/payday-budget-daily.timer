@@ -1,9 +1,12 @@
 [Unit]
-Description=Run the Payday Budget daily job each morning
+Description=Run the Payday Budget daily job every hour
 
+# Hourly (D-068): each run keeps the timelines extended and auto-posts due bills;
+# notifications go out once the local time reaches the reminder hour in Settings.
 [Timer]
-OnCalendar=*-*-* 07:00:00
+OnCalendar=hourly
 Persistent=true
+RandomizedDelaySec=60
 
 [Install]
 WantedBy=timers.target
