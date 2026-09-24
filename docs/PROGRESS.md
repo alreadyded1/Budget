@@ -1,9 +1,7 @@
 # Progress
 
-**Current phase:** Phase 7 — Deploy the MVP to the Proxmox LXC (🟨 built; waiting on the go-live run)
-**Next step:** Run `deploy/GO-LIVE.md` on the real CT (after the PR to `main` is merged) and report
-back: which of the four boxes passed, and the output of anything that did not. Then tick Phase 7's
-boxes and plan Phase 8 (subscriptions and bill calendar).
+**Current phase:** Phase 8 — Subscriptions and bill calendar (not started)
+**Next step:** Plan Phase 8 per docs/BUILD_PLAN.md and SPEC §9.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -15,7 +13,7 @@ boxes and plan Phase 8 (subscriptions and bill calendar).
 | 4 | Transactions backend | ✅ done | 2026-09-23 |
 | 5 | Ledger UI and fast entry | ✅ done | 2026-09-24 |
 | 6 | Budget planner and dashboard | ✅ done | 2026-09-24 |
-| 7 | Deploy MVP to LXC | 🟨 built, go-live pending | |
+| 7 | Deploy MVP to LXC | ✅ done | 2026-09-24 |
 | 8 | Subscriptions and bill calendar | ⬜ | |
 | 9 | Daily job and ntfy | ⬜ | |
 | 10 | Import and rules | ⬜ | |
@@ -77,7 +75,12 @@ registered transactions and proved that part; the box closes when subscriptions 
     ntfy alert.
   - `install.sh` and `update.sh` have not been run end to end yet; the go-live run is their first.
   - Backups sit on the same disk as the database; vzdump of the CT is the off-box copy.
-- **Next step:** Merge the PR, run `deploy/GO-LIVE.md` on the CT, and report back.
+- **Go-live (reported by the user, 2026-09-24):** live at `https://payday.h-dungeon.com` behind NPM
+  (`10.10.20.98`), Proxmox firewall rules in place, back after a reboot, nightly backup and the
+  scratch restore both worked, and `update.sh` ran clean. All four boxes ticked. The firewall steps
+  now say that the net0 dialog shows `eth0` and that a CT rule leaves Interface and Destination
+  empty — both came up during setup.
+- **Next step:** Plan Phase 8 (subscriptions and bill calendar).
 
 ### 2026-09-24 — Phase 6 (Budget planner and dashboard)
 - **Done:**
