@@ -40,7 +40,7 @@ Add a **Proxy Host**:
 | Details | Domain: your hostname · Scheme `http` · Forward to the CT's IP, port `8000` |
 | Details | Block Common Exploits **on** · Websockets Support off (not needed) · Cache Assets off |
 | SSL | Your certificate (Let's Encrypt, or DNS challenge if the name is LAN-only) · Force SSL · HTTP/2 |
-| Advanced | Nothing yet. When receipt uploads arrive (Phase 15), add `client_max_body_size 20m;` |
+| Advanced | `client_max_body_size 6m;` so statement imports up to 5 MB get through (NGINX's default is 1 MB). Raise it to `20m` when receipt uploads arrive (Phase 15) |
 
 The app sets its session cookie `Secure` in production, so it only works over the HTTPS name,
 not `http://<ct-ip>:8000`. That is expected: the plain port is for the proxy and health checks.

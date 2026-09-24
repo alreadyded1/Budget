@@ -5,6 +5,7 @@ const TABS = [
   { to: '/settings/pay-schedule', label: 'Pay schedule' },
   { to: '/settings/pay-periods', label: 'Pay periods' },
   { to: '/settings/categories', label: 'Categories' },
+  { to: '/settings/rules', label: 'Rules' },
   { to: '/settings/notifications', label: 'Notifications' },
   { to: '/settings/users', label: 'Users' },
 ]

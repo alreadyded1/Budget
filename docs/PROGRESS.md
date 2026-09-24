@@ -1,8 +1,8 @@
 # Progress
 
-**Current phase:** Phase 10 — Import and rules (not started)
-**Next step:** Plan Phase 10 per docs/BUILD_PLAN.md and SPEC §11 — CSV/OFX/QFX import with duplicate
-detection, and payee/category rules.
+**Current phase:** Phase 11 — Reconciliation (not started)
+**Next step:** Plan Phase 11 per docs/BUILD_PLAN.md and SPEC §12 — the reconcile flow, adjustment
+transactions and reconciliation history.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -10,14 +10,14 @@ detection, and payee/category rules.
 | 0 | Scaffold and tooling | ✅ done | 2026-09-22 |
 | 1 | Auth, users, settings | ✅ done * | 2026-09-22 |
 | 2 | Pay schedule engine | ✅ done | 2026-09-22 |
-| 3 | Accounts, categories, payees | ✅ done † | 2026-09-23 |
+| 3 | Accounts, categories, payees | ✅ done | 2026-09-23 |
 | 4 | Transactions backend | ✅ done | 2026-09-23 |
 | 5 | Ledger UI and fast entry | ✅ done | 2026-09-24 |
 | 6 | Budget planner and dashboard | ✅ done | 2026-09-24 |
 | 7 | Deploy MVP to LXC | ✅ done | 2026-09-24 |
 | 8 | Subscriptions and bill calendar | ✅ done | 2026-09-24 |
 | 9 | Daily job and ntfy | ✅ done | 2026-09-24 |
-| 10 | Import and rules | ⬜ | |
+| 10 | Import and rules | ✅ done | 2026-09-24 |
 | 11 | Reconciliation | ⬜ | |
 | 12 | Reports | ⬜ | |
 | 13 | Goals and sinking funds | ⬜ | |
@@ -31,11 +31,6 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 browser click-through of CLI user → login form → signed in. The browser tooling disconnected before that
 check could run. The server side of it is verified (see the session log below).
 
-† Phase 3 is built, but one "Done when" box cannot be closed from inside Phase 3: "merging moves
-transactions, subscriptions, and rules" needs tables that Phases 4, 8 and 10 add. Phases 4 and 8 have
-since registered transactions and subscriptions and proved those parts; the box closes when rules
-(Phase 10) register theirs.
-
 ## Session log
 <!-- Newest first. Copy this block for each session.
 ### YYYY-MM-DD — Phase N (short title)
@@ -44,6 +39,36 @@ since registered transactions and subscriptions and proved those parts; the box 
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 10 (Import and rules)
+- **Done:**
+  - Migration `0009`: `import_profiles`, `import_batches`, `import_staged_rows`, `rules`, and
+    `transactions.import_batch_id` / `import_key` / `imported_description`.
+  - `app/domain/imports/`: OFX/QFX reader (SGML and XML), CSV profiles (8 date formats, one signed
+    column or debit/credit, sign flip, preamble lines, UTF-8 → Windows-1252), duplicate keys, rule
+    matching. Pure functions with fixture files (1 OFX, 1 QFX, 2 CSV layouts).
+  - Services and API: CSV profiles and live preview; stage (duplicates skipped, rule → exact payee name →
+    manual match → bill suggestion); row edits; commit; undo; discard; history per account. Rules CRUD,
+    ordering, and "test against past imports". Rules registered for payee/category merges, which closes
+    the last Phase 3 box.
+  - UI: `/import/:accountId` (from "Import…" on the ledger): account and file → CSV column mapping with
+    the server's preview and first guesses at separator, preamble, columns and date format → review
+    (action per row, payee and category typeahead, duplicate / rule / match badges, "Pays <bill>"
+    checkbox, "Create rule from this") → commit to the ledger. Import history with Undo. Settings → Rules
+    with Alt+↑/↓ ordering, on/off, and the test panel.
+  - Decisions D-074 to D-078.
+  - Tests: 423 backend (+46: 22 domain, 24 API covering every Done-when box, rule precedence, exact-name
+    payees, bill link, undo refused after reconciling, payee merge moving rules), 151 frontend (+19),
+    4 E2E (+1: map, review from the keyboard, match, commit, re-import as duplicates, undo).
+- **Deviations from plan:**
+  - The file is sent as JSON text, not multipart (D-078). No new dependencies.
+  - A rule created while reviewing applies from the next import; it does not rewrite rows already
+    staged (parking lot).
+- **Known issues:**
+  - Undo does not delete payees the import created; they stay, unused, until merged or deleted.
+  - After merging, run `update.sh` on the LXC: it applies migration `0009`. In NPM, add
+    `client_max_body_size 6m;` to the proxy host's Advanced tab, or statements over 1 MB get a 413.
+- **Next step:** Plan Phase 11 (reconciliation).
 
 ### 2026-09-24 — Phase 9 (Daily job and ntfy)
 - **Done:**
@@ -454,14 +479,14 @@ since registered transactions and subscriptions and proved those parts; the box 
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
-- Register rules with `app/services/references.py` — Phase 10 (transactions and subscriptions done).
 - Group `GET /balances` into one query if the account list ever grows — Phase 16.
 - Group the payee usage and autofill queries into one query for the payee list — Phase 16.
 - Extend the E2E suite beyond the ledger and planner flows — Phase 16 (ARCHITECTURE §Testing).
 - Sinking-fund carryover in the planner — Phase 13.
 - Collapsible groups on the planner — Phase 16.
-- Transaction columns deferred to their own phases: import_batch_id and import_key (10),
-  reconciliation_id (11). subscription_occurrence_id is not needed (D-067).
+- Transaction column deferred to its phase: reconciliation_id (11). subscription_occurrence_id is not
+  needed (D-067).
+- Re-apply a rule created during review to the batch's other staged rows — Phase 16.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
 - First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.
 - A "session list / sign out everywhere" screen was not asked for; note it if it ever comes up.

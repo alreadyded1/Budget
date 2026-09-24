@@ -85,7 +85,7 @@ Proxy host settings:
 - Block Common Exploits: on. Websockets: not needed.
 - SSL tab: your certificate, Force SSL, HTTP/2.
 
-If receipt uploads fail with 413, add `client_max_body_size 20m;` to the host's Advanced tab.
+If statement imports (over 1 MB) or, later, receipt uploads fail with 413, add `client_max_body_size 20m;` to the host's Advanced tab.
 
 ## Firewall
 - Allow port 8000 **only from the NPM LXC IP**. Use the Proxmox firewall on the CT or nftables inside it.

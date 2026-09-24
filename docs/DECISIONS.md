@@ -457,3 +457,34 @@ never reached an existing install. → Both scripts install every `*.service` an
 `update.sh` restarts enabled timers so a new schedule applies at once. The backup unit's `OnFailure=`
 starts the `payday-budget-notify-failure@` template, which runs `pb notify-failure <unit>` (once a day
 per unit, priority urgent).
+
+## D-074 The first matching rule wins (confirmed with the user, 2026-09-24)
+Rules are checked in the order shown under Settings → Rules and only the first match applies; later
+rules are not merged in. New rules go to the end, so an existing rule keeps winning until the new one is
+moved up (Alt+↑/↓). Matching ignores case; a regex rule uses `re.search`.
+
+## D-075 Without a rule, a payee is filled only on an exact name (confirmed with the user, 2026-09-24)
+With no rule, an imported row gets a payee only when its description equals an existing payee's name
+(ignoring case), plus that payee's default category. Otherwise the payee stays blank, and "Create rule
+from this" teaches it. No fuzzy guessing: a wrong payee is worse than none.
+
+## D-076 A row that pays a bill links it, ticked by default (confirmed with the user, 2026-09-24)
+When a row's payee has an unpaid bill within the D-064 window, the review screen shows "Pays <bill>"
+ticked. At commit the new transaction is linked and the bill is marked paid; unticking leaves the bill
+alone. Changing the row's payee looks for a bill again.
+
+## D-077 Match and undo semantics
+A match is an entry with the exact amount on the same account within ±3 days that was not itself
+imported and is not reconciled; the closest date wins. Committing a match changes uncleared to cleared
+and records the import key, and your payee, category and memo stay. Imported rows are created cleared.
+Undo deletes the batch's created transactions and puts matched entries back to their previous status
+(`import_staged_rows.previous_status`). It is refused once anything in the batch is reconciled.
+Nothing is written to the ledger before commit.
+
+## D-078 Statements are uploaded as JSON text, parsed by our own code
+The browser reads the file (UTF-8, else Windows-1252) and sends its text in JSON, capped at 5 MB, so no
+python-multipart dependency is needed. OFX/QFX (SGML 1.x and XML 2.x) is parsed with a small regex
+reader of `<STMTTRN>` blocks rather than ofxparse/ofxtools, which are unmaintained or heavy for the
+five fields used. Duplicates are keyed by FITID when the file has one, otherwise by a hash of account,
+date, amount, description and the row's position among identical rows, so two same-day $5 coffees stay
+two rows.

@@ -32,6 +32,7 @@ class Transaction(TimestampMixin, Base):
         Index("ix_transactions_account_date", "account_id", "date"),
         Index("ix_transactions_date", "date"),
         Index("ix_transactions_transfer_id", "transfer_id"),
+        Index("ix_transactions_account_import_key", "account_id", "import_key"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -45,6 +46,14 @@ class Transaction(TimestampMixin, Base):
     check_number: Mapped[str | None] = mapped_column(String(32), default=None)
     #: Both legs of a transfer share this. Null for everything else.
     transfer_id: Mapped[str | None] = mapped_column(String(36), default=None)
+
+    #: Import bookkeeping (Phase 10, D-044): the batch that created it, the duplicate key
+    #: (also set on a manual entry an import matched), and the bank's own description.
+    import_batch_id: Mapped[int | None] = mapped_column(
+        ForeignKey("import_batches.id", ondelete="SET NULL"), default=None
+    )
+    import_key: Mapped[str | None] = mapped_column(String(64), default=None)
+    imported_description: Mapped[str | None] = mapped_column(Text, default=None)
 
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), default=None)
     updated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), default=None)
