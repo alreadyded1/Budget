@@ -241,8 +241,8 @@ Implement DEPLOYMENT.md.
 - Reports section: filters, Recharts charts, drill-down to transactions, CSV export, print CSS.
 
 **Done when**
-- [ ] Report totals tie to ledger totals in tests.
-- [ ] Presets resolve correctly on Jan 1, month-end, and inside a transition period.
+- [x] Report totals tie to ledger totals in tests.
+- [x] Presets resolve correctly on Jan 1, month-end, and inside a transition period.
 
 ## Phase 13 — Goals and sinking funds
 - Savings goals and sinking funds per SPEC §13: required per-period contribution, on-track status,

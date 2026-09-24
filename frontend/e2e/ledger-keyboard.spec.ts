@@ -129,7 +129,14 @@ test('ten transactions from the keyboard, with no page loads', async ({ page }) 
   await keys.press('Tab')
   await keys.press('Tab')
   await keys.type('8.75')
+  // Step 4 reads the payee's last category, which the cache learns when the server confirms
+  // the save; the optimistic row alone is not enough (see PROGRESS parking lot).
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/v1/transactions') && response.request().method() === 'POST',
+  )
   await keys.press('Enter')
+  await saved
   expected -= 875
   await expect(rows).toHaveCount(3)
   await expect(rows.first()).toContainText('Corner Bakery')
