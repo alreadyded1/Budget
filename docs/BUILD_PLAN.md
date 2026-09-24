@@ -97,7 +97,7 @@ The MVP you can use every day is ready after **Phase 7**.
 **Done when**
 - [x] Renaming a payee to a name that exists in any casing triggers the merge offer. The DB enforces
       nocase uniqueness.
-- [ ] Merging moves transactions, subscriptions, and rules. Tests prove it.
+- [x] Merging moves transactions, subscriptions, and rules. Tests prove it.
 - [x] Categories can be reordered using only the keyboard.
 
 ## Phase 4 — Transactions backend
@@ -222,10 +222,10 @@ Implement DEPLOYMENT.md.
 - Rules manager: ordered list, test a rule against past imports.
 
 **Done when**
-- [ ] Fixture files import correctly: 1 OFX, 1 QFX, 2 CSV layouts (single signed amount; debit/credit).
-- [ ] Re-importing the same file flags every row as a duplicate.
-- [ ] A manual entry is matched and cleared instead of duplicated.
-- [ ] Undo removes exactly that batch.
+- [x] Fixture files import correctly: 1 OFX, 1 QFX, 2 CSV layouts (single signed amount; debit/credit).
+- [x] Re-importing the same file flags every row as a duplicate.
+- [x] A manual entry is matched and cleared instead of duplicated.
+- [x] Undo removes exactly that batch.
 
 ## Phase 11 — Reconciliation
 - The reconcile flow per SPEC §12, adjustment transactions, and reconciliation history.

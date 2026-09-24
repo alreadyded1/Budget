@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { NavLink, useParams, useSearchParams } from 'react-router-dom'
+import { Link, NavLink, useParams, useSearchParams } from 'react-router-dom'
 
 import type { Account } from '../../api/accounts'
 import { queryKeys } from '../../api/keys'
@@ -502,6 +502,12 @@ function LedgerView({
               <span className="tabular-nums">{formatCents(firstPage.total_cents)}</span>
             </span>
           )}
+          <Link
+            to={account ? `/import/${account.id}` : '/import'}
+            className="rounded px-1.5 text-xs text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+          >
+            Import…
+          </Link>
           <button
             type="button"
             onClick={() => setShowHelp(true)}

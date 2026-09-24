@@ -12,6 +12,7 @@ from app.api.v1 import (
     budget,
     categories,
     health,
+    imports,
     notifications,
     pay_schedule,
     payees,
@@ -40,6 +41,7 @@ protected.include_router(transactions.router)
 protected.include_router(budget.router)
 protected.include_router(subscriptions.router)
 protected.include_router(notifications.router)
+protected.include_router(imports.router)
 api_router.include_router(protected)
 
 __all__ = ["api_router"]
