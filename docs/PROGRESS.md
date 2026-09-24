@@ -77,8 +77,6 @@ since registered transactions and subscriptions and proved those parts; the box 
     it now reinstalls every unit (D-073).
   - httpx is not used (D-070).
 - **Known issues:**
-  - A bill reminder queued for the day is not withdrawn if the bill is paid before the reminder hour;
-    state messages are rebuilt each run, so this only affects the auto-post notices, which are accurate.
   - `pb run-daily` exits 1 when a send fails, so systemd shows the unit failed until the next good run.
   - The job has not run on the LXC yet: after merging, `update.sh` enables the hourly timer. Set ntfy
     under Settings → Notifications and press Send test.
