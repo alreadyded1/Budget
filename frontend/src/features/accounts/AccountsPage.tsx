@@ -9,7 +9,9 @@ import { ApiRequestError } from '../../api/client'
 import { queryKeys } from '../../api/keys'
 import { fetchBalances } from '../../api/transactions'
 import { useToast } from '../../components/toastContext'
+import { DebtFields } from './DebtFields'
 import { LowBalanceField } from './LowBalanceField'
+import { ValuationPanel } from './ValuationPanel'
 import { formatCents, parseAmountToCents } from '../../lib/money'
 
 const inputClass =
@@ -29,6 +31,9 @@ const TYPES: { value: AccountType; label: string }[] = [
 
 const TYPE_LABEL = Object.fromEntries(TYPES.map((type) => [type.value, type.label]))
 
+/** Types that can be valued by hand instead of by their transactions (SPEC §3). */
+const MANUAL_TYPES = new Set<AccountType>(['investment', 'other_asset', 'other_liability'])
+
 export function AccountsPage() {
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -46,6 +51,8 @@ export function AccountsPage() {
   const [name, setName] = useState('')
   const [type, setType] = useState<AccountType>('checking')
   const [opening, setOpening] = useState('')
+  const [manual, setManual] = useState(false)
+  const [valuing, setValuing] = useState<number | null>(null)
   const [showClosed, setShowClosed] = useState(false)
 
   const invalidate = () => {
@@ -95,7 +102,12 @@ export function AccountsPage() {
       toast('That opening balance is not an amount.')
       return
     }
-    add.mutate({ name, type, opening_balance_cents: cents })
+    add.mutate({
+      name,
+      type,
+      opening_balance_cents: cents,
+      valuation_mode: manual && MANUAL_TYPES.has(type) ? 'manual' : 'transactions',
+    })
   }
 
   return (
@@ -119,46 +131,66 @@ export function AccountsPage() {
       ) : (
         <ul className="mt-4 divide-y divide-slate-200 rounded border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
           {visible.map((account) => (
-            <li key={account.id} className="flex items-center gap-3 px-3 py-2">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">
-                  <Link
-                    to={`/transactions/${account.id}`}
-                    className="rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-sky-500"
+            <li key={account.id} className="px-3 py-2">
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">
+                    <Link
+                      to={`/transactions/${account.id}`}
+                      className="rounded outline-none hover:underline focus-visible:ring-2 focus-visible:ring-sky-500"
+                    >
+                      {account.name}
+                    </Link>
+                    {account.is_closed ? (
+                      <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-500 dark:bg-slate-800">
+                        closed
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="truncate text-xs text-slate-500">
+                    {TYPE_LABEL[account.type]} · {account.on_budget ? 'on budget' : 'tracking'}
+                    {account.last4 ? ` · ••${account.last4}` : ''}
+                  </div>
+                </div>
+                {!account.is_closed &&
+                  account.is_liability &&
+                  account.valuation_mode === 'transactions' && <DebtFields account={account} />}
+                {!account.is_closed && account.valuation_mode === 'transactions' && (
+                  <LowBalanceField account={account} />
+                )}
+                {!account.is_closed && account.valuation_mode === 'manual' && (
+                  <button
+                    type="button"
+                    onClick={() => setValuing(valuing === account.id ? null : account.id)}
+                    aria-expanded={valuing === account.id}
+                    className="shrink-0 rounded px-2 py-1 text-xs text-sky-700 outline-none hover:bg-sky-50 focus-visible:ring-2 focus-visible:ring-sky-500 dark:text-sky-300 dark:hover:bg-sky-950"
                   >
-                    {account.name}
-                  </Link>
-                  {account.is_closed ? (
-                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-500 dark:bg-slate-800">
-                      closed
-                    </span>
-                  ) : null}
+                    Update value
+                  </button>
+                )}
+                <div className="shrink-0 text-right">
+                  <div
+                    className={`text-sm tabular-nums ${(balanceOf(account.id) ?? 0) < 0 ? 'text-rose-600' : ''}`}
+                  >
+                    {formatCents(balanceOf(account.id) ?? account.opening_balance_cents)}
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    {balanceOf(account.id) === undefined ? 'opening' : 'balance'}
+                  </div>
                 </div>
-                <div className="truncate text-xs text-slate-500">
-                  {TYPE_LABEL[account.type]} · {account.on_budget ? 'on budget' : 'tracking'}
-                  {account.last4 ? ` · ••${account.last4}` : ''}
-                </div>
-              </div>
-              {!account.is_closed && account.valuation_mode === 'transactions' && (
-                <LowBalanceField account={account} />
-              )}
-              <div className="shrink-0 text-right">
-                <div
-                  className={`text-sm tabular-nums ${(balanceOf(account.id) ?? 0) < 0 ? 'text-rose-600' : ''}`}
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleClosed.mutate({ id: account.id, closed: !account.is_closed })
+                  }
+                  className="shrink-0 rounded px-2 py-1 text-xs text-slate-600 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-500 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
-                  {formatCents(balanceOf(account.id) ?? account.opening_balance_cents)}
-                </div>
-                <div className="text-xs text-slate-400">
-                  {balanceOf(account.id) === undefined ? 'opening' : 'balance'}
-                </div>
+                  {account.is_closed ? 'Reopen' : 'Close'}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => toggleClosed.mutate({ id: account.id, closed: !account.is_closed })}
-                className="shrink-0 rounded px-2 py-1 text-xs text-slate-600 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-500 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                {account.is_closed ? 'Reopen' : 'Close'}
-              </button>
+              {valuing === account.id && (
+                <ValuationPanel account={account} onClose={() => setValuing(null)} />
+              )}
             </li>
           ))}
         </ul>
@@ -196,6 +228,16 @@ export function AccountsPage() {
             className={inputClass}
           />
         </div>
+        {MANUAL_TYPES.has(type) && (
+          <label className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={manual}
+              onChange={(event) => setManual(event.target.checked)}
+            />
+            I will type its value in by hand (a house, a car, a brokerage account)
+          </label>
+        )}
         <button
           type="submit"
           disabled={add.isPending}

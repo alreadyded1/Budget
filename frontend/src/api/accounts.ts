@@ -28,6 +28,7 @@ export type Account = {
   payment_due_day: number | null
   low_balance_alert_cents: number | null
   is_liability: boolean
+  closed_on?: string | null
 }
 
 export type AccountInput = {
@@ -59,4 +60,30 @@ export function updateAccount(id: number, body: Partial<AccountInput>): Promise<
 
 export function setAccountClosed(id: number, closed: boolean): Promise<Account> {
   return apiFetch<Account>(`/accounts/${id}/${closed ? 'close' : 'reopen'}`, { method: 'POST' })
+}
+
+export type Valuation = {
+  id: number
+  account_id: number
+  date: string
+  balance_cents: number
+  note: string | null
+}
+
+export function fetchValuations(
+  accountId: number,
+  signal?: AbortSignal,
+): Promise<{ items: Valuation[] }> {
+  return apiFetch(`/accounts/${accountId}/valuations`, { signal })
+}
+
+export function addValuation(
+  accountId: number,
+  body: { date: string; balance_cents: number; note?: string | null },
+): Promise<Valuation> {
+  return apiFetch(`/accounts/${accountId}/valuations`, { method: 'POST', body })
+}
+
+export function deleteValuation(accountId: number, valuationId: number): Promise<void> {
+  return apiFetch(`/accounts/${accountId}/valuations/${valuationId}`, { method: 'DELETE' })
 }

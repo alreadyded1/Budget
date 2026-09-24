@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 
 import { ApiRequestError } from '../../api/client'
 import { queryKeys } from '../../api/keys'
+import { fetchNetWorth } from '../../api/netWorth'
 import { reportsApi } from '../../api/reports'
 import type { ReportQuery } from '../../api/reports'
 import { formatCents } from '../../lib/money'
@@ -632,14 +633,134 @@ export function TransactionListReport({ qs, search, names }: ReportContext) {
   )
 }
 
-export function NetWorthPlaceholder() {
+const NET_WORTH_RANGES = [
+  { key: '12', label: '12 months' },
+  { key: '24', label: '24 months' },
+  { key: 'all', label: 'Since the first account' },
+]
+
+/** Net worth (SPEC §14): assets − liabilities at each month-end, and by account type now. */
+export function NetWorthReport({ search }: ReportContext) {
+  const raw = search.get('months') ?? '24'
+  const range = NET_WORTH_RANGES.some((item) => item.key === raw) ? raw : '24'
+  const report = useQuery({
+    queryKey: queryKeys.netWorth(range),
+    queryFn: ({ signal }) => fetchNetWorth(range, signal),
+  })
+  const data = report.data
+  if (!data) return <Loading error={report.error} />
+  const history = data.history
+  const span = { start: history[0]?.date ?? data.today.date, end: data.today.date }
+  const owed = (cents: number) => formatCents(-cents)
   return (
     <section>
-      <Heading>Net worth over time</Heading>
-      <p className="mt-2 text-sm text-slate-500">
-        Arrives with Phase 14 (net worth and debt payoff), which also handles accounts opened or
-        closed partway through a range.
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <Heading>Net worth</Heading>
+        <nav className="no-print flex gap-3 text-sm" aria-label="Net worth range">
+          {NET_WORTH_RANGES.map((item) => {
+            const next = new URLSearchParams(search)
+            next.set('months', item.key)
+            return item.key === range ? (
+              <span key={item.key} className="font-medium">
+                {item.label}
+              </span>
+            ) : (
+              <Link key={item.key} className={LINK} to={`?${next.toString()}`} replace>
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-6 text-sm" data-testid="net-worth-summary">
+        <span>
+          Net worth <strong className="tabular-nums">{formatCents(data.today.net_cents)}</strong>
+        </span>
+        <span>
+          Assets <strong className="tabular-nums">{formatCents(data.today.assets_cents)}</strong>
+        </span>
+        <span>
+          Owed <strong className="tabular-nums">{owed(data.today.liabilities_cents)}</strong>
+        </span>
+      </div>
+      <p className="text-xs text-slate-500">
+        Every open account, on-budget and tracking. Each month-end counts the accounts open on that
+        day, with typed balances for manually valued accounts.
       </p>
+      {history.length > 1 && (
+        <div className="mt-4">
+          <Lines
+            name="Net worth at each month-end"
+            rows={history.map((point) => ({ label: point.date.slice(0, 7), net: point.net_cents }))}
+            series={[{ key: 'net', name: 'Net worth', slot: 0 }]}
+          />
+        </div>
+      )}
+      <ReportTable
+        report="net-worth"
+        range={span}
+        rows={[...history].reverse()}
+        rowKey={(row) => row.date}
+        columns={[
+          { header: 'Date', cell: (row) => row.date, csv: (row) => row.date },
+          {
+            header: 'Assets',
+            cell: (row) => money(row.assets_cents),
+            csv: (row) => centsCsv(row.assets_cents),
+            align: 'right',
+          },
+          {
+            header: 'Owed',
+            cell: (row) => owed(row.liabilities_cents),
+            csv: (row) => centsCsv(-row.liabilities_cents),
+            align: 'right',
+          },
+          {
+            header: 'Net worth',
+            cell: (row) => money(row.net_cents),
+            csv: (row) => centsCsv(row.net_cents),
+            align: 'right',
+          },
+        ]}
+      />
+      <h3 className="mt-6 text-sm font-semibold">By account type, today</h3>
+      <ReportTable
+        report="net-worth-by-type"
+        range={{ start: data.today.date, end: data.today.date }}
+        rows={data.breakdown.flatMap((group) => [
+          {
+            key: `t-${group.type}`,
+            label: group.label,
+            detail: '',
+            group,
+            cents: group.balance_cents,
+            heading: true,
+          },
+          ...group.accounts.map((a) => ({
+            key: `a-${a.account_id}`,
+            label: '',
+            detail: a.name,
+            group,
+            cents: a.balance_cents,
+            heading: false,
+          })),
+        ])}
+        rowKey={(row) => row.key}
+        columns={[
+          {
+            header: 'Type',
+            cell: (row) => (row.heading ? <strong>{row.label}</strong> : ''),
+            csv: (row) => row.group.label,
+          },
+          { header: 'Account', cell: (row) => row.detail, csv: (row) => row.detail || 'All' },
+          {
+            header: 'Balance',
+            cell: (row) => (row.group.is_liability ? `${owed(row.cents)} owed` : money(row.cents)),
+            csv: (row) => centsCsv(row.cents),
+            align: 'right',
+          },
+        ]}
+      />
     </section>
   )
 }
