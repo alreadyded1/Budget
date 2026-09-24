@@ -156,10 +156,10 @@ class TestSplits:
 
 
 class TestBalances:
-    def test_current_cleared_and_reconciled(self, auth_client, checking):
+    def test_current_cleared_and_reconciled(self, auth_client, checking, lock):
+        lock(spend(auth_client, checking, -4000).json()["transactions"][0])
         spend(auth_client, checking, -1000)
         spend(auth_client, checking, -2000, status="cleared")
-        spend(auth_client, checking, -4000, status="reconciled")
 
         balance = auth_client.get(f"{ACCOUNTS}/{checking['id']}/balance").json()
 
@@ -421,8 +421,8 @@ class TestTransfers:
 
 
 class TestReconciledProtection:
-    def test_changing_the_amount_needs_confirmation(self, auth_client, checking):
-        created = spend(auth_client, checking, status="reconciled").json()["transactions"][0]
+    def test_changing_the_amount_needs_confirmation(self, auth_client, checking, lock):
+        created = lock(spend(auth_client, checking).json()["transactions"][0])
 
         refused = auth_client.patch(
             f"{TX}/{created['id']}", json={"amount_cents": -9999}, headers=HEADERS
@@ -431,8 +431,8 @@ class TestReconciledProtection:
         assert refused.status_code == 409
         assert refused.json()["code"] == "reconciled_edit_requires_confirm"
 
-    def test_confirm_lets_it_through(self, auth_client, checking):
-        created = spend(auth_client, checking, status="reconciled").json()["transactions"][0]
+    def test_confirm_lets_it_through(self, auth_client, checking, lock):
+        created = lock(spend(auth_client, checking).json()["transactions"][0])
 
         allowed = auth_client.patch(
             f"{TX}/{created['id']}?confirm=true", json={"amount_cents": -9999}, headers=HEADERS
@@ -441,8 +441,8 @@ class TestReconciledProtection:
         assert allowed.status_code == 200
         assert allowed.json()["transactions"][0]["amount_cents"] == -9999
 
-    def test_the_date_and_account_are_protected_too(self, auth_client, checking, savings):
-        created = spend(auth_client, checking, status="reconciled").json()["transactions"][0]
+    def test_the_date_and_account_are_protected_too(self, auth_client, checking, savings, lock):
+        created = lock(spend(auth_client, checking).json()["transactions"][0])
 
         assert (
             auth_client.patch(
@@ -457,8 +457,10 @@ class TestReconciledProtection:
             == 409
         )
 
-    def test_a_memo_or_category_fix_needs_no_confirmation(self, auth_client, checking, category):
-        created = spend(auth_client, checking, status="reconciled").json()["transactions"][0]
+    def test_a_memo_or_category_fix_needs_no_confirmation(
+        self, auth_client, checking, category, lock
+    ):
+        created = lock(spend(auth_client, checking).json()["transactions"][0])
 
         memo = auth_client.patch(
             f"{TX}/{created['id']}", json={"memo": "corrected"}, headers=HEADERS
@@ -472,8 +474,10 @@ class TestReconciledProtection:
         assert memo.status_code == 200
         assert recategorized.status_code == 200
 
-    def test_deleting_a_reconciled_transaction_needs_confirmation(self, auth_client, checking):
-        created = spend(auth_client, checking, status="reconciled").json()["transactions"][0]
+    def test_deleting_a_reconciled_transaction_needs_confirmation(
+        self, auth_client, checking, lock
+    ):
+        created = lock(spend(auth_client, checking).json()["transactions"][0])
 
         refused = auth_client.delete(f"{TX}/{created['id']}", headers=HEADERS)
         assert refused.status_code == 409

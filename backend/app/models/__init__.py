@@ -15,6 +15,7 @@ from app.models.imports import ImportBatch, ImportProfile, ImportStagedRow, Rule
 from app.models.notification import NOTIFICATION_KINDS, NotificationLog
 from app.models.pay_schedule import PayPeriod, PaySchedule
 from app.models.payee import Payee
+from app.models.reconciliation import Reconciliation
 from app.models.settings import SETTINGS_ID, Settings
 from app.models.subscription import (
     OCCURRENCE_STATUSES,
@@ -53,6 +54,7 @@ __all__ = [
     "Rule",
     "PaySchedule",
     "Payee",
+    "Reconciliation",
     "Session",
     "Settings",
     "Subscription",

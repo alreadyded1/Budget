@@ -366,15 +366,16 @@ function LedgerView({
   function toggleCleared(id: number | null) {
     const row = id === null ? undefined : mutations.find(id)
     if (row === undefined || row.id < 0) return
-    if (row.status === 'reconciled') {
-      toast('This transaction is reconciled. Reconciliation arrives in a later phase.')
-      return
-    }
-    runUpdate({ id: row.id, body: { status: row.status === 'cleared' ? 'uncleared' : 'cleared' } })
+    // A reconciled row unlocks to cleared (the bank still has it); the server asks first (D-080).
+    runUpdate({
+      id: row.id,
+      body: { status: row.status === 'cleared' ? 'uncleared' : 'cleared' },
+    })
   }
 
   function restore(row: Transaction) {
-    const status = row.status
+    // Only finishing a reconciliation sets reconciled, so a restored row comes back cleared.
+    const status = row.status === 'reconciled' ? 'cleared' : row.status
     if (row.transfer_id !== null && row.transfer_account_id !== null) {
       const outgoing = row.amount_cents < 0
       mutations.create.mutate(
@@ -501,6 +502,14 @@ function LedgerView({
               Filtered total{' '}
               <span className="tabular-nums">{formatCents(firstPage.total_cents)}</span>
             </span>
+          )}
+          {account && account.valuation_mode !== 'manual' && (
+            <Link
+              to={`/reconcile/${account.id}`}
+              className="rounded px-1.5 text-xs text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+            >
+              Reconcile…
+            </Link>
           )}
           <Link
             to={account ? `/import/${account.id}` : '/import'}

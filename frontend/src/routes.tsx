@@ -12,6 +12,7 @@ import { DashboardPage } from './features/dashboard/DashboardPage'
 import { ImportPage } from './features/import/ImportPage'
 import { LedgerPage } from './features/ledger/LedgerPage'
 import { PayeesPage } from './features/payees/PayeesPage'
+import { ReconcilePage } from './features/reconcile/ReconcilePage'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { GeneralSettingsPage } from './features/settings/GeneralSettingsPage'
 import { NotificationsSettingsPage } from './features/settings/NotificationsSettingsPage'
@@ -40,6 +41,7 @@ export function AppRoutes() {
         <Route path="transactions/:accountId" element={<LedgerPage />} />
         <Route path="import" element={<ImportPage />} />
         <Route path="import/:accountId" element={<ImportPage />} />
+        <Route path="reconcile/:accountId" element={<ReconcilePage />} />
         <Route path="accounts" element={<AccountsPage />} />
         <Route path="subscriptions" element={<SubscriptionsPage />} />
         <Route path="calendar" element={<CalendarPage />} />

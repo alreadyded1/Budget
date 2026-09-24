@@ -232,8 +232,8 @@ Implement DEPLOYMENT.md.
 - The ledger shows the reconciled status with a lock icon.
 
 **Done when**
-- [ ] Finishing is blocked until the difference is zero (or an adjustment is made).
-- [ ] Reconciled transactions are protected per Phase 4.
+- [x] Finishing is blocked until the difference is zero (or an adjustment is made).
+- [x] Reconciled transactions are protected per Phase 4.
 
 ## Phase 12 — Reports
 - Backend date-range resolver: a pure function covering the presets, including pay-period presets.

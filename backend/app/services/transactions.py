@@ -114,6 +114,39 @@ def _write_splits(db: DbSession, transaction: Transaction, splits: list[SplitInp
         )
 
 
+def check_new_status(status: str) -> None:
+    """A new transaction starts uncleared or cleared; reconciled comes from a reconciliation."""
+    _validate_status(status)
+    if status == "reconciled":
+        raise AppError(
+            422,
+            "A transaction becomes reconciled by finishing a reconciliation.",
+            "reconcile_through_flow",
+        )
+
+
+def apply_status(transaction: Transaction, status: str, *, confirm: bool) -> None:
+    """Change one row's status under the Phase 11 rules (D-080).
+
+    Nothing is set to reconciled by hand, and taking a row out of reconciled needs the same
+    confirmation as the other reconciled edits (D-039). Leaving it drops the link to its
+    reconciliation.
+    """
+    _validate_status(status)
+    if status == transaction.status:
+        return
+    if status == "reconciled":
+        check_new_status(status)
+    if transaction.status == "reconciled" and not confirm:
+        raise AppError(
+            409,
+            "This transaction is reconciled. Marking it unreconciled needs confirmation.",
+            "reconciled_edit_requires_confirm",
+        )
+    transaction.status = status
+    transaction.reconciliation_id = None
+
+
 def _guard_reconciled(transaction: Transaction, changes: dict, confirm: bool) -> None:
     if transaction.status != "reconciled" or confirm:
         return
@@ -143,7 +176,7 @@ def create_transaction(
     user_id: int | None = None,
 ) -> TransactionResult:
     accounts_service.get_account(db, account_id)
-    _validate_status(status)
+    check_new_status(status)
     if payee_id is not None:
         payees_service.get_payee(db, payee_id)
 
@@ -189,17 +222,26 @@ def update_transaction(
     if transaction.is_transfer:
         return _update_transfer(db, transaction, changes, confirm=confirm, user_id=user_id)
 
-    if "status" in changes:
-        _validate_status(changes["status"])
+    changes = dict(changes)
+    status = changes.pop("status", None)
+    if status is not None:
+        apply_status(transaction, status, confirm=confirm)
     if changes.get("account_id") is not None:
         accounts_service.get_account(db, changes["account_id"])
     if changes.get("payee_id") is not None:
         payees_service.get_payee(db, changes["payee_id"])
 
     touched_accounts = {transaction.account_id}
+    moved = (
+        changes.get("account_id") is not None and changes["account_id"] != transaction.account_id
+    )
     for key, value in changes.items():
         setattr(transaction, key, value)
     touched_accounts.add(transaction.account_id)
+    if moved and transaction.status == "reconciled":
+        # The other account's statement never saw it.
+        transaction.status = "cleared"
+        transaction.reconciliation_id = None
     transaction.updated_by = user_id
 
     split_inputs = splits if splits is not None else _splits_of(transaction)
@@ -238,7 +280,8 @@ def delete_transaction(
     db: DbSession, transaction_id: int, *, confirm: bool = False
 ) -> TransactionResult:
     transaction = get_transaction(db, transaction_id)
-    if transaction.status == "reconciled" and not confirm:
+    rows = _legs_of(db, transaction.transfer_id) if transaction.is_transfer else [transaction]
+    if any(row.status == "reconciled" for row in rows) and not confirm:
         raise AppError(
             409,
             "This transaction is reconciled. Deleting it needs confirmation.",
@@ -336,7 +379,7 @@ def create_transfer(
         raise AppError(422, "A transfer needs two different accounts.", "same_account")
     if amount_cents <= 0:
         raise AppError(422, "A transfer amount must be positive.", "invalid_transfer_amount")
-    _validate_status(status)
+    check_new_status(status)
 
     source = accounts_service.get_account(db, from_account_id)
     destination = accounts_service.get_account(db, to_account_id)
@@ -396,8 +439,13 @@ def _update_transfer(
 
     if "payee_id" in changes and changes["payee_id"] is not None:
         raise AppError(422, "Transfers do not have a payee.", "transfer_has_no_payee")
+    # The other leg may be reconciled on its own account's statement (D-080).
+    mirrored = {key: changes[key] for key in ("date",) if key in changes}
+    if "amount_cents" in changes:
+        mirrored["amount_cents"] = -changes["amount_cents"]
+    _guard_reconciled(partner, mirrored, confirm)
     if "status" in changes:
-        _validate_status(changes["status"])
+        apply_status(leg, changes["status"], confirm=confirm)
 
     touched = {leg.account_id, partner.account_id}
 
@@ -412,12 +460,12 @@ def _update_transfer(
         leg.date = partner.date = changes["date"]
     if "memo" in changes:
         leg.memo = partner.memo = changes["memo"]
-    if "status" in changes:
-        leg.status = partner.status = changes["status"]
-    if changes.get("account_id") is not None:
+    if changes.get("account_id") is not None and changes["account_id"] != leg.account_id:
         accounts_service.get_account(db, changes["account_id"])
         leg.account_id = changes["account_id"]
         touched.add(leg.account_id)
+        if leg.status == "reconciled":
+            leg.status, leg.reconciliation_id = "cleared", None
 
     leg.updated_by = partner.updated_by = user_id
     db.commit()

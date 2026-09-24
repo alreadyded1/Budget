@@ -219,7 +219,7 @@ started − Σ actual spending in that category.
 **reconciliations**
 - `account_id`
 - `statement_date`, `statement_balance_cents`
-- `adjustment_transaction_id` (nullable)
+- `adjustment_transaction_id` (nullable; no foreign key, see D-081)
 - `completed_by`, `completed_at`
 
 ## Attachments
