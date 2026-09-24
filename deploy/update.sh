@@ -134,12 +134,18 @@ ok "schema at $(runuser -u "${APP_USER}" -- sqlite3 "${PB_DATABASE_PATH}" 'selec
 
 # ------------------------------------------------------------------- 5. restart
 step "Restarting"
-install -m 0644 "${APP_DIR}/deploy/systemd/payday-budget.service" /etc/systemd/system/
+# Every unit, not only the app's: a new timer schedule or a new unit ships with the code.
+install -m 0644 "${APP_DIR}"/deploy/systemd/*.service "${APP_DIR}"/deploy/systemd/*.timer \
+  /etc/systemd/system/
 if [[ "${PORT}" != "8000" ]]; then
   sed -i "s/--port 8000/--port ${PORT}/" /etc/systemd/system/payday-budget.service
 fi
 install -m 0755 "${APP_DIR}/deploy/pb" /usr/local/bin/pb
 systemctl daemon-reload
+# Restarting an enabled timer makes it pick up a changed schedule now, not after its next run.
+for timer in payday-budget-daily.timer payday-budget-backup.timer; do
+  if systemctl is-enabled --quiet "${timer}" 2>/dev/null; then systemctl restart "${timer}"; fi
+done
 systemctl restart payday-budget.service
 
 for _ in $(seq 1 30); do
@@ -154,7 +160,7 @@ if [[ -z "${HEALTH}" ]]; then
 fi
 ok "health: ${HEALTH}"
 
-# Turn on any timer whose command now exists (pb run-daily / pb backup, Phase 9).
+# Turn on any timer whose command now exists (pb run-daily arrives in Phase 9).
 for job in daily:run-daily backup:backup; do
   name="${job%%:*}"; cmd="${job##*:}"
   if "${PB_BIN}" "${cmd}" --help >/dev/null 2>&1 &&

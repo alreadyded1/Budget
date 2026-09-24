@@ -1,8 +1,8 @@
 # Progress
 
-**Current phase:** Phase 9 — Daily job and ntfy (not started)
-**Next step:** Plan Phase 9 per docs/BUILD_PLAN.md and SPEC §10 — `pb run-daily` (auto-post, reminders,
-horizons, session sweep) and the ntfy client, including the backup-failure alert.
+**Current phase:** Phase 10 — Import and rules (not started)
+**Next step:** Plan Phase 10 per docs/BUILD_PLAN.md and SPEC §11 — CSV/OFX/QFX import with duplicate
+detection, and payee/category rules.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -16,7 +16,7 @@ horizons, session sweep) and the ntfy client, including the backup-failure alert
 | 6 | Budget planner and dashboard | ✅ done | 2026-09-24 |
 | 7 | Deploy MVP to LXC | ✅ done | 2026-09-24 |
 | 8 | Subscriptions and bill calendar | ✅ done | 2026-09-24 |
-| 9 | Daily job and ntfy | ⬜ | |
+| 9 | Daily job and ntfy | ✅ done | 2026-09-24 |
 | 10 | Import and rules | ⬜ | |
 | 11 | Reconciliation | ⬜ | |
 | 12 | Reports | ⬜ | |
@@ -44,6 +44,43 @@ since registered transactions and subscriptions and proved those parts; the box 
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 9 (Daily job and ntfy)
+- **Done:**
+  - Migration `0008`: `notification_log` (unique `(kind, ref_key)`, with the message and a JSON payload
+    kept for retries) and `accounts.low_balance_since`.
+  - `app/jobs/ntfy.py`: a standard-library ntfy client (JSON publish, priority, tags, click link,
+    bearer token) and a recorder for tests (D-070).
+  - `app/services/notifications.py`: send-once through the log, queueing, retries, the test message.
+  - `app/jobs/daily.py` → `pb run-daily`: extend periods and bills; auto-post due bills, linking a
+    hand-entered payment instead of doubling it (D-071); bill reminders inside each bill's lead days;
+    one overdue notice; one low-balance alert per dip (D-069); expired-session sweep; a summary line.
+    Messages wait for the reminder hour (D-068); one-off ones are queued meanwhile (D-072).
+  - `pb notify-failure <unit>` and the `payday-budget-notify-failure@` template, wired to the backup
+    unit's `OnFailure=`; the daily timer is hourly; `install.sh`/`update.sh` install every unit and
+    `update.sh` restarts enabled timers (D-073).
+  - API: `GET /notifications`, `POST /notifications/test`; settings report `ntfy_token_set` and never
+    return the token.
+  - UI: Settings → Notifications (server, topic, write-only token, reminder hour, Send test, the log
+    with sent / waiting / failed), a "warn below" field per account on the Accounts page, and
+    `/calendar?bill=` opening that bill (the click link in every bill message).
+  - Tests: 377 backend (+21: auto-post once, link instead of duplicate, no-account notice, remind-only,
+    posting before the reminder hour with the message queued, reminder windows, overdue once, running
+    twice sends nothing new, retry after failure, the reminder-hour gate, notifications off, low balance
+    per dip, failure alert once a day, write-only token, Send test, and the real HTTP client against a
+    local server), 132 frontend (+2), 3 E2E.
+- **Deviations from plan:**
+  - Found by the tests: an auto-posted bill before the reminder hour lost its "Posted" message, since
+    it was only generated once; one-off messages are now queued in the log (D-072). Settings also leaked
+    between backend tests (the cleanup skipped the singleton); the conftest now clears it too.
+  - `update.sh` did not reinstall timer units, so the new schedule would never have reached the LXC;
+    it now reinstalls every unit (D-073).
+  - httpx is not used (D-070).
+- **Known issues:**
+  - `pb run-daily` exits 1 when a send fails, so systemd shows the unit failed until the next good run.
+  - The job has not run on the LXC yet: after merging, `update.sh` enables the hourly timer. Set ntfy
+    under Settings → Notifications and press Send test.
+- **Next step:** Plan Phase 10 (import and rules).
 
 ### 2026-09-24 — Phase 8 (Subscriptions and bill calendar)
 - **Done:**
@@ -417,11 +454,6 @@ since registered transactions and subscriptions and proved those parts; the box 
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
-- Expired-session sweep inside `pb run-daily` — Phase 9.
-- ntfy alert when the nightly backup fails (`OnFailure=` on the backup unit) — Phase 9.
-- Auto-post of due bills and bill reminders (`remind_days_before`) in `pb run-daily` — Phase 9.
-- Extend subscription occurrences from the daily job too, not only on read — Phase 9.
-- `ensure_horizon()` should also run from the daily job so the timeline never ages — Phase 9.
 - Register rules with `app/services/references.py` — Phase 10 (transactions and subscriptions done).
 - Group `GET /balances` into one query if the account list ever grows — Phase 16.
 - Group the payee usage and autofill queries into one query for the payee list — Phase 16.
@@ -430,7 +462,6 @@ since registered transactions and subscriptions and proved those parts; the box 
 - Collapsible groups on the planner — Phase 16.
 - Transaction columns deferred to their own phases: import_batch_id and import_key (10),
   reconciliation_id (11). subscription_occurrence_id is not needed (D-067).
-- ntfy settings UI and the runtime HTTP client choice — Phase 9.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
 - First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.
 - A "session list / sign out everywhere" screen was not asked for; note it if it ever comes up.

@@ -9,6 +9,7 @@ import { ApiRequestError } from '../../api/client'
 import { queryKeys } from '../../api/keys'
 import { fetchBalances } from '../../api/transactions'
 import { useToast } from '../../components/toastContext'
+import { LowBalanceField } from './LowBalanceField'
 import { formatCents, parseAmountToCents } from '../../lib/money'
 
 const inputClass =
@@ -138,6 +139,9 @@ export function AccountsPage() {
                   {account.last4 ? ` · ••${account.last4}` : ''}
                 </div>
               </div>
+              {!account.is_closed && account.valuation_mode === 'transactions' && (
+                <LowBalanceField account={account} />
+              )}
               <div className="shrink-0 text-right">
                 <div
                   className={`text-sm tabular-nums ${(balanceOf(account.id) ?? 0) < 0 ? 'text-rose-600' : ''}`}

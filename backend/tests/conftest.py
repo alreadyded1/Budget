@@ -53,9 +53,10 @@ def _clean_state() -> Iterator[None]:
     yield
     login_failures.clear()
     with SessionLocal() as session:
+        # Settings too: the singleton is recreated with defaults on first read, so one
+        # test's ntfy or reminder settings never leak into the next.
         for table in reversed(Base.metadata.sorted_tables):
-            if table.name != "settings":
-                session.execute(table.delete())
+            session.execute(table.delete())
         session.commit()
 
 

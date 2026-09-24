@@ -1,14 +1,14 @@
 [Unit]
-Description=Payday Budget nightly backup
-OnFailure=payday-budget-notify-failure@%n.service
+Description=Send an ntfy alert that %i failed
 
+# Started by OnFailure= on the backup service; %i is the unit that failed.
 [Service]
 Type=oneshot
 User=payday
 Group=payday
 EnvironmentFile=/etc/payday-budget/payday-budget.env
 WorkingDirectory=/opt/payday-budget/backend
-ExecStart=/opt/payday-budget/backend/.venv/bin/pb backup
+ExecStart=/opt/payday-budget/backend/.venv/bin/pb notify-failure %i
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true

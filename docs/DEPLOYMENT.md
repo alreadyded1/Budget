@@ -67,7 +67,8 @@ WantedBy=multi-user.target
 
 Timers:
 - **payday-budget-daily.timer / .service**
-  - Runs `pb run-daily` with `OnCalendar=*-*-* 07:00:00` and `Persistent=true`.
+  - Runs `pb run-daily` hourly (`OnCalendar=hourly`, `Persistent=true`). Notifications wait until the
+    reminder hour in Settings (D-068).
   - It runs as `payday` and uses the same hardening settings.
 - **payday-budget-backup.timer / .service**
   - Runs `pb backup` with `OnCalendar=*-*-* 02:30:00` and `Persistent=true`.
@@ -75,7 +76,8 @@ Timers:
     `PRAGMA integrity_check`, and makes a tarball of receipts. Each run writes a pair sharing one
     timestamp: `budget-YYYYmmdd-HHMMSS.db` and `receipts-YYYYmmdd-HHMMSS.tar.gz`.
   - Files older than `PB_BACKUP_KEEP_DAYS` are deleted; the newest pair is always kept.
-  - If the backup fails, it sends an ntfy alert (Phase 9, via the unit's `OnFailure=`).
+  - If the backup fails, `OnFailure=` starts `payday-budget-notify-failure@.service`, which sends an
+    urgent ntfy alert (D-073).
 
 ## NGINX Proxy Manager
 Proxy host settings:

@@ -20,6 +20,7 @@ export const queryKeys = {
   budget: (periodId: number | 'current') => ['budget', periodId] as const,
   dashboard: ['dashboard'] as const,
   subscriptions: ['subscriptions'] as const,
+  notifications: ['notifications'] as const,
   bills: ['bills'] as const,
   billRange: (from: string, to: string) => ['bills', from, to] as const,
   bill: (occurrenceId: number) => ['bills', 'one', occurrenceId] as const,

@@ -1,4 +1,6 @@
-"""Household settings schemas. ntfy fields are writable now, exposed in the UI in Phase 9."""
+"""Household settings schemas. The ntfy token is write-only: reads only say whether it is set."""
+
+import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -12,6 +14,7 @@ class SettingsOut(BaseModel):
     theme_default: str
     ntfy_url: str | None
     ntfy_topic: str | None
+    ntfy_token_set: bool = False
     reminder_hour: int
     prefill_last_amount: bool
 
@@ -26,3 +29,25 @@ class SettingsUpdate(BaseModel):
     ntfy_token: str | None = Field(default=None, max_length=255)
     reminder_hour: int | None = Field(default=None, ge=0, le=23)
     prefill_last_amount: bool | None = None
+
+
+class NotificationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    kind: str
+    ref_key: str
+    title: str
+    message: str
+    sent_at: datetime.datetime
+    success: bool
+    error: str | None
+
+
+class NotificationListOut(BaseModel):
+    items: list[NotificationOut]
+
+
+class TestResultOut(BaseModel):
+    success: bool
+    error: str | None

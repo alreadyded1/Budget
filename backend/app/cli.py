@@ -174,5 +174,31 @@ def list_backups() -> None:
         typer.echo(f"{entry.taken_at:%Y-%m-%d %H:%M:%S}  {database} ({size} KB)  {receipts}")
 
 
+@app.command("run-daily")
+def run_daily() -> None:
+    """Extend the timelines, auto-post due bills, and send reminders. Safe to run often."""
+    from app.jobs.daily import run_daily as job
+
+    with session_scope() as db:
+        report = job(db)
+    typer.echo(report.summary())
+    for label in report.posted:
+        typer.echo(f"  posted {label}")
+    for label in report.linked:
+        typer.echo(f"  linked {label}")
+    if report.failed:
+        raise typer.Exit(1)
+
+
+@app.command("notify-failure")
+def notify_failure(unit: str = typer.Argument(..., help="The systemd unit that failed")) -> None:
+    """Send an alert that a unit failed. Used by OnFailure= on the backup service."""
+    from app.jobs.daily import notify_failure as job
+
+    with session_scope() as db:
+        outcome = job(db, unit)
+    typer.echo(f"{unit}: {outcome.status}{f' ({outcome.error})' if outcome.error else ''}")
+
+
 if __name__ == "__main__":
     app()

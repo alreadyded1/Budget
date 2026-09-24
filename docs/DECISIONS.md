@@ -421,3 +421,39 @@ its payment, and deleting that transaction (single, transfer or bulk) sends the 
 through a new "transaction deleting" hook in `app/services/references.py`. "Mark paid" passes
 `subscription_occurrence_id` on the create request so the transaction and the link are written in one
 call, and an unknown bill is refused before anything is written.
+
+## D-068 The daily job runs hourly and messages wait for the reminder hour (confirmed with the user, 2026-09-24)
+With a fixed 07:00 timer the `reminder_hour` setting could never take effect. → `payday-budget-daily.timer`
+runs `pb run-daily` every hour. Each run extends pay periods and bill occurrences and auto-posts due
+bills; notifications go out only once the local hour reaches `reminder_hour`, and the log keeps them to
+once each, so the hourly runs cost nothing.
+
+## D-069 One low-balance alert per dip (confirmed with the user, 2026-09-24)
+An alert goes out when an account first drops below its threshold; nothing more until the balance has
+recovered to the threshold or above and dropped again. `accounts.low_balance_since` remembers the dip
+(set on the first low run, cleared on recovery), and the log key is `acct:<id>:low:<that date>`.
+
+## D-070 ntfy through the standard library
+ARCHITECTURE named httpx for ntfy; the only use is one JSON POST, so `urllib.request` does it with no new
+runtime dependency. Messages are published as JSON to the server root (topic in the body), which avoids
+the latin-1 limit on HTTP header titles. The sender is a plain callable, resolved at call time, so tests
+pass a recorder instead.
+
+## D-071 Auto-post links a hand-entered payment instead of doubling it (confirmed with the user, 2026-09-24)
+Before posting a due auto-post bill, the job looks for an unlinked outflow to the same payee within ±3
+days and 10% or $1 (D-064). If there is one it is linked; otherwise a transaction is created on the
+bill's account for the due date, uncleared, with its payee and category, and the bill is marked paid.
+A bill with no account is never posted; the household gets one "pay it by hand" notice.
+
+## D-072 One-off notifications are queued, state notifications are rebuilt
+"Posted Netflix" happens once; "Netflix due tomorrow" is true on every run until it is paid. → One-off
+kinds (auto_post) are written to the log as queued before the reminder hour and sent, or retried after a
+failure, from their stored payload; state kinds (bill_due, bill_overdue, low_balance) are simply rebuilt
+each run and deduplicated by key. `payload` holds priority, tags and the click link as JSON.
+
+## D-073 Every systemd unit is reinstalled on update
+`update.sh` used to reinstall only the app's unit, so a changed timer or a new unit in `deploy/systemd`
+never reached an existing install. → Both scripts install every `*.service` and `*.timer` there, and
+`update.sh` restarts enabled timers so a new schedule applies at once. The backup unit's `OnFailure=`
+starts the `payday-budget-notify-failure@` template, which runs `pb notify-failure <unit>` (once a day
+per unit, priority urgent).

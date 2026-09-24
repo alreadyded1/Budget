@@ -207,8 +207,8 @@ Implement DEPLOYMENT.md.
 - Add the `payday-budget-daily` service and timer to `deploy/systemd/`.
 
 **Done when**
-- [ ] Running the job twice in one day sends nothing new (test with a mocked ntfy).
-- [ ] An auto-posted subscription creates exactly one transaction and marks its occurrence paid.
+- [x] Running the job twice in one day sends nothing new (test with a mocked ntfy).
+- [x] An auto-posted subscription creates exactly one transaction and marks its occurrence paid.
 
 ## Phase 10 — Import and rules
 - CSV profiles with a mapping UI.

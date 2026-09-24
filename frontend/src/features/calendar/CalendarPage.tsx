@@ -51,7 +51,10 @@ export function CalendarPage() {
   const to = weeks[weeks.length - 1][6]
   const reference = useReferenceData()
   const actions = useBillActions()
-  const [selectedId, setSelectedId] = useState<number | null>(null)
+  // A notification's link opens its bill: /calendar?month=2026-10&bill=123
+  const [selectedId, setSelectedId] = useState<number | null>(
+    () => Number(params.get('bill')) || null,
+  )
 
   const bills = useQuery({
     queryKey: queryKeys.billRange(from, to),
