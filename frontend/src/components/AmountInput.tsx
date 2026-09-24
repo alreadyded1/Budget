@@ -12,6 +12,7 @@ type Props = {
   id?: string
   name?: string
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void
+  'data-plan-index'?: number
 }
 
 /** Cents as the text an amount field settles into: 1575 → "15.75". */

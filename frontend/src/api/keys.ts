@@ -16,6 +16,9 @@ export const queryKeys = {
   payees: ['payees'] as const,
   balances: ['balances'] as const,
   transactions: ['transactions'] as const,
+  budgets: ['budget'] as const,
+  budget: (periodId: number | 'current') => ['budget', periodId] as const,
+  dashboard: ['dashboard'] as const,
   ledger: (accountId: number | null, filters: LedgerFilters) =>
     ['transactions', { accountId, filters }] as const,
 }

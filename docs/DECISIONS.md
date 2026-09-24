@@ -321,3 +321,40 @@ because only the server knows what the filter now includes.
 - Changing a transfer into a plain transaction (or the reverse), or moving a transfer to a different
   partner account, is refused inline with a message to delete and re-enter it. The backend has no
   operation for either, and faking one as delete-plus-create would lose the row's history.
+
+## D-054 What counts as Actual in the planner (confirmed with the user, 2026-09-24)
+Actual is the sum of split amounts in the category for transactions dated inside the period, **in
+on-budget accounts only**. A transfer between two on-budget accounts has no splits, so it drops out; the
+on-budget leg of a payment to a tracking account (the car loan) carries a split, so it counts. Spending
+in a tracking account is ignored even if categorized. Signs: expense actual = −(sum of splits), so a
+refund lowers it and can take it below zero, shown as-is; income actual = +(sum of splits). Remaining is
+always planned − actual, and only an expense can be overspent.
+
+## D-055 Prorating a transition period (confirmed with the user, 2026-09-24)
+Prorate sets each category to template × (days in the transition period ÷ days in the last normal period
+before it), rounded half away from zero in integer arithmetic. $500.00 over 6 of 14 days is $214.29. If
+the transition period has no normal period before it, prorate is refused.
+
+## D-056 A period is prefilled the first time it is opened (confirmed with the user, 2026-09-24)
+Opening a period with no plan rows writes one row per visible category at its template amount. From then
+on the rows stay: Clear sets them to $0 rather than deleting them, so the template does not come back,
+and a later change to the template does not touch periods already opened. A category added later has no
+row in older periods and reads as $0 planned. Subscription bills join the prefill in Phase 8.
+
+## D-057 Copy, template, clear and prorate overwrite the whole plan (confirmed with the user, 2026-09-24)
+Each writes every category's planned amount in one commit; the toast's Undo puts the previous amounts
+back through `PUT /budget/{period}/plan`, the bulk form of the single-category edit. Hidden categories
+are only written where the period already has a row for them.
+
+## D-058 Planner details
+- Plan rows are removed with their category (FK cascade). Deleting a category with reassignment folds
+  its planned amounts into the target's, period by period.
+- Every planner response is the whole period view (lines, group subtotals, summary), which keeps the
+  "mutations return the aggregates they change" rule without a second shape. The page recomputes the same
+  numbers locally first (`budgetMath.ts`, mirroring `app/domain/budget.py`), and with several edits in
+  flight only the last server answer is applied, so an earlier one cannot briefly undo a later edit.
+- Keyboard: Tab or Enter commits a planned amount and moves down (Shift+Enter moves up), Esc restores
+  it, `[` / `]` change period and `t` returns to the current one.
+- The uncategorized alert links to `/transactions?from=&to=&uncategorized=1&on_budget=1`. The ledger
+  reads those parameters once, shows the scope as a removable chip, and the API gained `on_budget` so
+  the ledger count matches the alert's.

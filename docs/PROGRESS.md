@@ -1,8 +1,8 @@
 # Progress
 
-**Current phase:** Phase 6 — Budget planner and dashboard (not started)
-**Next step:** Plan Phase 6 per docs/BUILD_PLAN.md — planned vs. actual per pay period (SPEC §8), the
-dashboard, and prorating planned amounts across a transition period (parked since Phase 2).
+**Current phase:** Phase 7 — Deploy the MVP to the Proxmox LXC (not started)
+**Next step:** Plan Phase 7 per docs/BUILD_PLAN.md — `deploy/restore.sh`, the firewall and NGINX Proxy
+Manager steps, and the first real deployment. `install.sh` and `update.sh` already exist (D-045).
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -13,7 +13,7 @@ dashboard, and prorating planned amounts across a transition period (parked sinc
 | 3 | Accounts, categories, payees | ✅ done † | 2026-09-23 |
 | 4 | Transactions backend | ✅ done | 2026-09-23 |
 | 5 | Ledger UI and fast entry | ✅ done | 2026-09-24 |
-| 6 | Budget planner and dashboard | ⬜ | |
+| 6 | Budget planner and dashboard | ✅ done | 2026-09-24 |
 | 7 | Deploy MVP to LXC | ⬜ | |
 | 8 | Subscriptions and bill calendar | ⬜ | |
 | 9 | Daily job and ntfy | ⬜ | |
@@ -44,6 +44,43 @@ registered transactions and proved that part; the box closes when subscriptions 
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 6 (Budget planner and dashboard)
+- **Done:**
+  - Migration `0006` adds `period_plans` (unique per period and category, `planned_cents ≥ 0`, cascade
+    from both the period and the category).
+  - `app/domain/budget.py` is pure: the Actual sign rules, remaining, overspent, integer proration, and
+    the summary header.
+  - `app/services/budget.py`: lazy prefill from the template, actuals from one grouped query over
+    on-budget splits, single and bulk edits, copy last period, apply template, clear, prorate, and the
+    uncategorized count. Plan rows follow a category through delete-with-reassignment.
+  - Endpoints: `GET /budget/current`, `GET /budget/{period}`,
+    `PUT /budget/{period}/categories/{category}`, `PUT /budget/{period}/plan`,
+    `POST /budget/{period}/{copy-previous|apply-template|clear|prorate}`, `GET /dashboard`, and an
+    `on_budget` filter on `GET /transactions`.
+  - Planner at `/budget` and `/budget/:periodId`: the summary header (expected income, planned, left to
+    plan, spent, remaining), the income and expense sections by group with subtotals, Planned / Actual /
+    Remaining with progress bars, overspent rows in red, inline planned amounts (Tab/Enter down, Esc
+    reverts, amount math works), the four actions with Undo, the uncategorized alert linking to a
+    filtered ledger, and period navigation by button or `[` `]` `t`.
+  - Dashboard: the current period's numbers, the five most overspent categories, account balances,
+    the ten most recent transactions, and an upcoming-bills placeholder.
+  - Ledger mutations now mark the budget and dashboard stale, so actuals are right when you switch over.
+  - Tests: 279 backend (+41: 15 domain, 26 API), 108 frontend (+10), 2 E2E (+1: plan an amount from
+    the keyboard with the server held back, check the totals moved before it answered, walk the periods,
+    and follow the uncategorized link — all without a document load).
+- **Deviations from plan:**
+  - The five open money questions were answered with the user before building (D-054 to D-057).
+  - Added `PUT /budget/{period}/plan` (bulk set) as the Undo path for the whole-plan actions; the plan
+    listed only the single-category edit.
+  - The dashboard's recent transactions show a dash for a transaction with no payee.
+- **Known issues:**
+  - Sinking-fund categories reset each period like the rest; their carryover arrives in Phase 13.
+  - Subscription bills are not in the prefill yet, and the "committed bills" hint is missing — Phase 8.
+  - Dashboard and planner render every visible category; with the starter set that is a long page.
+    Collapsing groups can wait for Phase 16 polish.
+  - `GET /budget/*` walks the category tree once per request; fine at household scale.
+- **Next step:** Plan Phase 7 (deploy the MVP to the LXC).
 
 ### 2026-09-24 — Phase 5 (Ledger UI and fast entry)
 - **Done:** (built in one go rather than as 5a/5b, at the user's request)
@@ -307,11 +344,13 @@ registered transactions and proved that part; the box closes when subscriptions 
   (install.sh and update.sh were pulled forward on request, 2026-09-23; see D-045).
 - Expired-session sweep inside `pb run-daily` — Phase 9.
 - `ensure_horizon()` should also run from the daily job so the timeline never ages — Phase 9.
-- Prorating planned amounts across a transition period — Phase 6 (budget planner).
 - Register subscriptions and rules with `app/services/references.py` — Phases 8 and 10 (transactions done).
 - Group `GET /balances` into one query if the account list ever grows — Phase 16.
 - Group the payee usage and autofill queries into one query for the payee list — Phase 16.
-- Extend the E2E suite beyond the ledger's keyboard flow — Phase 16 (ARCHITECTURE §Testing).
+- Extend the E2E suite beyond the ledger and planner flows — Phase 16 (ARCHITECTURE §Testing).
+- Subscription bills in the period prefill, and the "committed bills" hint per category — Phase 8.
+- Sinking-fund carryover in the planner — Phase 13.
+- Collapsible groups on the planner — Phase 16.
 - Transaction columns deferred to their own phases: subscription_occurrence_id (8), import_batch_id and
   import_key (10), reconciliation_id (11).
 - ntfy settings UI and the runtime HTTP client choice — Phase 9.

@@ -195,6 +195,9 @@ function ledgerCacheOps(queryClient: QueryClient, view: View) {
         queryKey: queryKeys.transactions,
         predicate: (query) => filtered || JSON.stringify(query.queryKey) !== JSON.stringify(key),
       })
+      // Budget actuals and the dashboard read the same transactions.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.budgets })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
     },
 
     rows(): Transaction[] {

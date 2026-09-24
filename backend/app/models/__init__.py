@@ -9,6 +9,7 @@ from app.models.account import (
     AccountValuation,
 )
 from app.models.base import Base, TimestampMixin, utcnow
+from app.models.budget import PeriodPlan
 from app.models.category import GROUP_KINDS, Category, CategoryGroup
 from app.models.pay_schedule import PayPeriod, PaySchedule
 from app.models.payee import Payee
@@ -30,6 +31,7 @@ __all__ = [
     "Category",
     "CategoryGroup",
     "PayPeriod",
+    "PeriodPlan",
     "PaySchedule",
     "Payee",
     "Session",

@@ -163,9 +163,9 @@ Build SPEC §7 completely. Split into 5a/5b if needed.
   and an upcoming-bills placeholder.
 
 **Done when**
-- [ ] Actuals match ledger totals in tests, and transfers are excluded correctly.
-- [ ] Editing a planned amount updates Remaining and the summary instantly.
-- [ ] New periods prefill from the template.
+- [x] Actuals match ledger totals in tests, and transfers are excluded correctly.
+- [x] Editing a planned amount updates Remaining and the summary instantly.
+- [x] New periods prefill from the template.
 
 ## Phase 7 — Deploy the MVP to the Proxmox LXC
 Implement DEPLOYMENT.md.

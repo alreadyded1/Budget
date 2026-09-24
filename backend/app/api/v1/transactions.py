@@ -36,14 +36,14 @@ def _out(transaction: Transaction, partners: dict[int, int]) -> TransactionOut:
     return out
 
 
-def _outs(db: DbSession, rows: list[Transaction]) -> list[TransactionOut]:
+def transaction_outs(db: DbSession, rows: list[Transaction]) -> list[TransactionOut]:
     partners = service.transfer_partner_accounts(db, rows)
     return [_out(row, partners) for row in rows]
 
 
 def _mutation(db: DbSession, result: service.TransactionResult) -> MutationOut:
     return MutationOut(
-        transactions=_outs(db, result.transactions),
+        transactions=transaction_outs(db, result.transactions),
         deleted_ids=result.deleted_ids,
         balances=[BalanceOut(**balance.as_dict()) for balance in result.balances],
     )
@@ -73,6 +73,7 @@ def list_transactions(
     max_cents: int | None = Query(default=None),
     text: str | None = Query(default=None),
     uncategorized: bool = Query(default=False),
+    on_budget: bool | None = Query(default=None),
     cursor: str | None = Query(default=None),
     limit: int = Query(default=ledger_service.DEFAULT_LIMIT, ge=1, le=ledger_service.MAX_LIMIT),
 ) -> LedgerPageOut:
@@ -87,6 +88,7 @@ def list_transactions(
         max_cents=max_cents,
         text=text,
         uncategorized=uncategorized,
+        on_budget=on_budget,
     )
     page = ledger_service.query(db, filters, cursor=cursor, limit=limit)
     partners = service.transfer_partner_accounts(db, [row.transaction for row in page.rows])
@@ -126,7 +128,7 @@ def create_transaction(
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionOut)
 def get_transaction(transaction_id: int, db: DbSession = Depends(get_db)) -> TransactionOut:
-    return _outs(db, [service.get_transaction(db, transaction_id)])[0]
+    return transaction_outs(db, [service.get_transaction(db, transaction_id)])[0]
 
 
 @router.patch("/transactions/{transaction_id}", response_model=MutationOut)

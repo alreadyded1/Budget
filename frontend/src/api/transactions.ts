@@ -85,6 +85,10 @@ export type LedgerFilters = {
   status?: TransactionStatus
   minCents?: number
   maxCents?: number
+  /** Only transactions with an uncategorized split (the budget's alert link). */
+  uncategorized?: boolean
+  /** Only on-budget (true) or tracking (false) accounts. */
+  onBudget?: boolean
 }
 
 export const PAGE_SIZE = 200
@@ -110,6 +114,8 @@ export function fetchLedger(
   if (filters.status) params.set('status', filters.status)
   if (filters.minCents !== undefined) params.set('min_cents', String(filters.minCents))
   if (filters.maxCents !== undefined) params.set('max_cents', String(filters.maxCents))
+  if (filters.uncategorized) params.set('uncategorized', 'true')
+  if (filters.onBudget !== undefined) params.set('on_budget', String(filters.onBudget))
   return apiFetch(`/transactions?${params.toString()}`, { signal })
 }
 

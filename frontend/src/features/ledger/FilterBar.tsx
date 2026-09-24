@@ -14,6 +14,9 @@ type Props = {
   payees: Payee[]
   categories: CategoryOption[]
   searchRef?: Ref<HTMLInputElement>
+  /** Dates to start with, e.g. a pay period linked from the budget. */
+  initialFrom?: string
+  initialTo?: string
 }
 
 type Form = {
@@ -61,8 +64,15 @@ function toFilters(form: Form): LedgerFilters {
 }
 
 /** Search and filters (SPEC §7). Filtering happens on the server, a moment after typing stops. */
-export function FilterBar({ onChange, payees, categories, searchRef }: Props) {
-  const [form, setForm] = useState<Form>(EMPTY)
+export function FilterBar({
+  onChange,
+  payees,
+  categories,
+  searchRef,
+  initialFrom = '',
+  initialTo = '',
+}: Props) {
+  const [form, setForm] = useState<Form>({ ...EMPTY, from: initialFrom, to: initialTo })
   const set = (patch: Partial<Form>) => setForm((current) => ({ ...current, ...patch }))
 
   useEffect(() => {

@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { NavLink, useParams } from 'react-router-dom'
+import { NavLink, useParams, useSearchParams } from 'react-router-dom'
 
 import type { Account } from '../../api/accounts'
 import type { LedgerFilters, Transaction } from '../../api/transactions'
 import { useToast } from '../../components/toastContext'
 import { useRowNavigation } from '../../components/useRowNavigation'
-import { todayIso } from '../../lib/dates'
+import { isValidIsoDate, todayIso } from '../../lib/dates'
 import { formatCents } from '../../lib/money'
 import { EntryRow } from './EntryRow'
 import type { EntryRowHandle } from './EntryRow'
@@ -27,6 +27,7 @@ import type { UpdateVars } from './useLedgerData'
 /** The ledger: one account at /transactions/:accountId, every account at /transactions. */
 export function LedgerPage() {
   const { accountId: param } = useParams()
+  const [search] = useSearchParams()
   const accountId = param === undefined ? null : Number(param)
   const reference = useReferenceData()
   const account = reference.accounts.find((row) => row.id === accountId)
@@ -38,10 +39,31 @@ export function LedgerPage() {
     return <p className="text-sm text-slate-500">That account does not exist.</p>
   }
   // Keyed so switching accounts starts with a clean entry row and selection.
-  return <LedgerView key={accountId ?? 'all'} account={account ?? null} reference={reference} />
+  return (
+    <LedgerView
+      key={`${accountId ?? 'all'}?${search.toString()}`}
+      account={account ?? null}
+      reference={reference}
+      linked={linkedFilters(search)}
+    />
+  )
 }
 
 type Reference = ReturnType<typeof useReferenceData>
+
+/** Filters a link can open the ledger with: ?from=&to=&uncategorized=1&on_budget=1. */
+type Linked = { from?: string; to?: string; uncategorized?: boolean; onBudget?: boolean }
+
+function linkedFilters(search: URLSearchParams): Linked {
+  const linked: Linked = {}
+  const from = search.get('from')
+  const to = search.get('to')
+  if (from && isValidIsoDate(from)) linked.from = from
+  if (to && isValidIsoDate(to)) linked.to = to
+  if (search.get('uncategorized') === '1') linked.uncategorized = true
+  if (search.get('on_budget') === '1') linked.onBudget = true
+  return linked
+}
 
 function AccountTabs({
   accounts,
@@ -85,10 +107,31 @@ function AccountTabs({
   )
 }
 
-function LedgerView({ account, reference }: { account: Account | null; reference: Reference }) {
+function LedgerView({
+  account,
+  reference,
+  linked,
+}: {
+  account: Account | null
+  reference: Reference
+  linked: Linked
+}) {
   const toast = useToast()
   const accountId = account?.id ?? null
-  const [filters, setFilters] = useState<LedgerFilters>({})
+  // Scope filters come only from a link and sit outside the filter bar.
+  const [scope, setScope] = useState<LedgerFilters>(() => {
+    const initial: LedgerFilters = {}
+    if (linked.uncategorized) initial.uncategorized = true
+    if (linked.onBudget) initial.onBudget = true
+    return initial
+  })
+  const [barFilters, setBarFilters] = useState<LedgerFilters>(() => {
+    const initial: LedgerFilters = {}
+    if (linked.from) initial.from = linked.from
+    if (linked.to) initial.to = linked.to
+    return initial
+  })
+  const filters = useMemo(() => ({ ...barFilters, ...scope }), [barFilters, scope])
   const ledger = useLedgerQuery(accountId, filters)
   const mutations = useLedgerMutations(
     { accountId, filters, account: account ?? undefined },
@@ -122,7 +165,7 @@ function LedgerView({ account, reference }: { account: Account | null; reference
   const balance = reference.balances.find((row) => row.account_id === accountId)
 
   const applyFilters = useCallback((next: LedgerFilters) => {
-    setFilters((current) => (JSON.stringify(current) === JSON.stringify(next) ? current : next))
+    setBarFilters((current) => (JSON.stringify(current) === JSON.stringify(next) ? current : next))
   }, [])
 
   // ------------------------------------------------------------------ new entries
@@ -412,7 +455,24 @@ function LedgerView({ account, reference }: { account: Account | null; reference
         payees={reference.payees}
         categories={reference.categories}
         searchRef={searchRef}
+        initialFrom={linked.from}
+        initialTo={linked.to}
       />
+      {Object.keys(scope).length > 0 && (
+        <div className="mb-2 flex items-center gap-2 text-sm" data-testid="scope-filter">
+          <span className="rounded bg-amber-100 px-2 py-0.5 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100">
+            {scope.uncategorized ? 'Uncategorized only' : 'Filtered'}
+            {scope.onBudget ? ' · budget accounts' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={() => setScope({})}
+            className="rounded px-1.5 text-xs text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+          >
+            Show all
+          </button>
+        </div>
+      )}
       {ledger.isError ? (
         <p className="text-sm text-rose-600">{errorMessage(ledger.error)}</p>
       ) : (
