@@ -71,9 +71,11 @@ Timers:
   - It runs as `payday` and uses the same hardening settings.
 - **payday-budget-backup.timer / .service**
   - Runs `pb backup` with `OnCalendar=*-*-* 02:30:00` and `Persistent=true`.
-  - The backup uses SQLite's online backup API (safe while the app runs) and makes a tarball of receipts.
-  - Files older than `PB_BACKUP_KEEP_DAYS` are deleted.
-  - If the backup fails, it sends an ntfy alert.
+  - The backup uses SQLite's online backup API (safe while the app runs), checks the copy with
+    `PRAGMA integrity_check`, and makes a tarball of receipts. Each run writes a pair sharing one
+    timestamp: `budget-YYYYmmdd-HHMMSS.db` and `receipts-YYYYmmdd-HHMMSS.tar.gz`.
+  - Files older than `PB_BACKUP_KEEP_DAYS` are deleted; the newest pair is always kept.
+  - If the backup fails, it sends an ntfy alert (Phase 9, via the unit's `OnFailure=`).
 
 ## NGINX Proxy Manager
 Proxy host settings:
@@ -111,11 +113,17 @@ Running it a second time is safe.
 6. Restart the service and run the health check. Print the version.
 
 ## Restore (`restore.sh <backup-file> [receipts-tarball]`)
+0. Check the backup's integrity (and that the archive is safe to unpack) before touching anything.
 1. Stop the service.
 2. Keep a copy of the current database as `budget.db.pre-restore`.
 3. Copy the backup into place and extract the receipts.
 4. Run `alembic upgrade head` in case the backup came from an older version.
 5. Start the service and run the health check.
+6. If any step after the swap fails, put the previous database and receipts back and start the
+   service again.
+
+## Firewall choice
+The Proxmox firewall on the CT, not nftables inside it (D-060). The rules are in `deploy/README.md`.
 
 ## Off-box protection
 Include this LXC in the Proxmox vzdump schedule (e.g. to a PBS or NAS target). The app's nightly backups

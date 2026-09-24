@@ -71,6 +71,14 @@ NODE_MAJOR="$(node -v | sed 's/^v\([0-9]*\).*/\1/')"
 [[ "${NODE_MAJOR}" -ge 20 ]] || die "Node 20 or newer is required; found $(node -v)."
 ok "node $(node -v), npm $(npm -v)"
 
+# "Today", pay periods and the nightly timers all follow the LXC's clock.
+TZ_NAME="$(timedatectl show -p Timezone --value 2>/dev/null || true)"
+if [[ -z "${TZ_NAME}" || "${TZ_NAME}" == "UTC" || "${TZ_NAME}" == "Etc/UTC" ]]; then
+  warn "the timezone is ${TZ_NAME:-unset}; set yours first, e.g. timedatectl set-timezone America/Detroit"
+else
+  ok "timezone ${TZ_NAME}"
+fi
+
 # ------------------------------------------------------------------------ 2. uv
 step "Installing uv"
 if [[ ! -x "${UV_BIN}" ]]; then
@@ -147,7 +155,11 @@ fi
 
 # -------------------------------------------------------------- 7. the migrations
 step "Applying database migrations"
-set -a; . "${ENV_FILE}"; set +a
+# The env file only exists on the LXC.
+set -a
+# shellcheck source=/dev/null
+. "${ENV_FILE}"
+set +a
 runuser -u "${APP_USER}" -- \
   env PATH="${APP_DIR}/backend/.venv/bin:${PATH}" \
   sh -c "cd '${APP_DIR}/backend' && alembic upgrade head" >/dev/null
@@ -160,8 +172,8 @@ if [[ "${PORT}" != "8000" ]]; then
   sed -i "s/--port 8000/--port ${PORT}/" /etc/systemd/system/payday-budget.service
 fi
 
-# The timers drive `pb run-daily` and `pb backup`, which arrive in Phase 9. Install
-# them now but leave them disabled until the commands exist, so nothing fails nightly.
+# The timers drive `pb backup` (nightly, 02:30) and `pb run-daily` (07:00, Phase 9).
+# Each is enabled only once its command exists, so nothing fails nightly.
 PB_BIN="${APP_DIR}/backend/.venv/bin/pb"
 for job in daily backup; do
   install -m 0644 "${APP_DIR}/deploy/systemd/payday-budget-${job}.service" /etc/systemd/system/

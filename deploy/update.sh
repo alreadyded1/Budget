@@ -40,7 +40,11 @@ done
 [[ -d "${APP_DIR}" ]] || die "${APP_DIR} does not exist. Run install.sh first."
 [[ -f "${ENV_FILE}" ]] || die "${ENV_FILE} is missing. Run install.sh first."
 
-set -a; . "${ENV_FILE}"; set +a
+# The env file only exists on the LXC.
+set -a
+# shellcheck source=/dev/null
+. "${ENV_FILE}"
+set +a
 PORT="$(sed -n 's/.*--port \([0-9]*\).*/\1/p' /etc/systemd/system/payday-budget.service | head -1)"
 PORT="${PORT:-8000}"
 PB_BIN="${APP_DIR}/backend/.venv/bin/pb"

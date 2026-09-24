@@ -358,3 +358,31 @@ are only written where the period already has a row for them.
 - The uncategorized alert links to `/transactions?from=&to=&uncategorized=1&on_budget=1`. The ledger
   reads those parameters once, shows the scope as a removable chip, and the API gained `on_budget` so
   the ledger count matches the alert's.
+
+## D-059 `pb backup` arrives in Phase 7, not Phase 9
+Phase 7's "Done when" needs a working nightly backup, and `update.sh` backs up first. → `pb backup`
+(`app/services/backup.py`) and `pb list-backups` are built now. The copy is verified with
+`PRAGMA integrity_check`, both files are written under a `.partial` name and renamed into place, and
+pruning reads the date from the file name (not the mtime) and always keeps the newest pair. The
+existing `install.sh` / `update.sh` logic (D-046) enables the backup timer as soon as the command
+exists. The ntfy alert on failure waits for the ntfy client in Phase 9.
+
+## D-060 The firewall is the Proxmox firewall on the CT (chosen by the user, 2026-09-24)
+An unprivileged LXC often cannot load nftables rules, and a host-side rule survives anything done
+inside the container. → `deploy/README.md` lists the rules (8000 from the NPM LXC only, SSH from the
+LAN, input policy DROP); nothing inside the CT manages a firewall.
+
+## D-061 restore.sh checks first and can always go back
+It refuses a backup that fails `PRAGMA integrity_check` or has no `alembic_version`, and a receipts
+archive with absolute paths, `..` or links, before stopping anything. The live data is kept as
+`budget.db.pre-restore` (via the backup API, so any WAL is folded in) and `receipts.pre-restore`, and
+an ERR trap puts both back and restarts the service if any later step fails. `set -E` is required for
+that trap to fire inside helper functions; the test suite caught its absence. The script takes
+`--data-dir`/`--env-file`/`--user`/`--no-service` so it runs for real in the tests and in the go-live
+scratch check.
+
+## D-062 Phase 7's boxes are ticked on the LXC, not in the cloud session
+The build session has no Proxmox, no systemd and no NPM. → Everything that can be proven off the box
+is (restore round trips in pytest, shellcheck, `systemd-analyze verify`, a `runuser` scratch restore),
+and `deploy/GO-LIVE.md` walks the household through the four boxes on the real CT. They stay open
+until that walk is reported back.

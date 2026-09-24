@@ -1,8 +1,9 @@
 # Progress
 
-**Current phase:** Phase 7 — Deploy the MVP to the Proxmox LXC (not started)
-**Next step:** Plan Phase 7 per docs/BUILD_PLAN.md — `deploy/restore.sh`, the firewall and NGINX Proxy
-Manager steps, and the first real deployment. `install.sh` and `update.sh` already exist (D-045).
+**Current phase:** Phase 7 — Deploy the MVP to the Proxmox LXC (🟨 built; waiting on the go-live run)
+**Next step:** Run `deploy/GO-LIVE.md` on the real CT (after the PR to `main` is merged) and report
+back: which of the four boxes passed, and the output of anything that did not. Then tick Phase 7's
+boxes and plan Phase 8 (subscriptions and bill calendar).
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -14,7 +15,7 @@ Manager steps, and the first real deployment. `install.sh` and `update.sh` alrea
 | 4 | Transactions backend | ✅ done | 2026-09-23 |
 | 5 | Ledger UI and fast entry | ✅ done | 2026-09-24 |
 | 6 | Budget planner and dashboard | ✅ done | 2026-09-24 |
-| 7 | Deploy MVP to LXC | ⬜ | |
+| 7 | Deploy MVP to LXC | 🟨 built, go-live pending | |
 | 8 | Subscriptions and bill calendar | ⬜ | |
 | 9 | Daily job and ntfy | ⬜ | |
 | 10 | Import and rules | ⬜ | |
@@ -44,6 +45,39 @@ registered transactions and proved that part; the box closes when subscriptions 
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 7 (Deploy the MVP to the Proxmox LXC)
+- **Done:**
+  - `pb backup` and `pb list-backups` (D-059): online-API database copy with an integrity check, a
+    receipts tarball with the same timestamp, atomic writes, pruning by `PB_BACKUP_KEEP_DAYS` that
+    always keeps the newest pair. `backup_keep_days` is in the config.
+  - `deploy/backup.sh` (a backup now) and `deploy/restore.sh` (D-061): check first, confirm, stop,
+    keep the current data as `.pre-restore`, swap in, migrate forward, start, health check, and put
+    everything back on any failure.
+  - `install.sh` warns when the CT is still on UTC; the nightly backup timer is now enabled on install
+    because its command exists. The daily timer still waits for Phase 9.
+  - `deploy/README.md`: NPM proxy host settings, the Proxmox firewall rules (D-060), backups, restore,
+    reboot, and every script option. `deploy/GO-LIVE.md`: the first deployment for
+    `payday.h-dungeon.com` behind NPM at `10.10.20.98`, one section per "Done when" box.
+  - `docs/DEPLOYMENT.md` brought in line: backup file names, the integrity check, restore's check-first
+    and put-back steps, and the firewall choice.
+  - Tests: 294 backend (+15: 10 backup, 5 that run `restore.sh` for real — a round trip onto a changed
+    install, a bare file name, an older schema migrated forward, a corrupt backup refused, and a failed
+    migration rolled back), 108 frontend, 2 E2E.
+  - Checked off the box: `shellcheck` clean on every script, `systemd-analyze verify` finds nothing but
+    the missing `/opt` binaries, and the GO-LIVE §6 scratch restore ran as a real non-root `payday`
+    user via `runuser`.
+- **Deviations from plan:**
+  - None of the four boxes is ticked: each needs the real CT, NPM or systemd (D-062).
+  - Found by the tests: `restore.sh` exited silently (status 2) when the systemd unit was missing,
+    because of `pipefail` in the port lookup, and its roll-back trap did not fire inside functions
+    without `set -E`. Both are fixed.
+- **Known issues:**
+  - A failed nightly backup only shows in `journalctl -u payday-budget-backup` until Phase 9 adds the
+    ntfy alert.
+  - `install.sh` and `update.sh` have not been run end to end yet; the go-live run is their first.
+  - Backups sit on the same disk as the database; vzdump of the CT is the off-box copy.
+- **Next step:** Merge the PR, run `deploy/GO-LIVE.md` on the CT, and report back.
 
 ### 2026-09-24 — Phase 6 (Budget planner and dashboard)
 - **Done:**
@@ -340,9 +374,8 @@ registered transactions and proved that part; the box closes when subscriptions 
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
-- `deploy/restore.sh`, the firewall and NPM steps, and the first real LXC deployment — Phase 7
-  (install.sh and update.sh were pulled forward on request, 2026-09-23; see D-045).
 - Expired-session sweep inside `pb run-daily` — Phase 9.
+- ntfy alert when the nightly backup fails (`OnFailure=` on the backup unit) — Phase 9.
 - `ensure_horizon()` should also run from the daily job so the timeline never ages — Phase 9.
 - Register subscriptions and rules with `app/services/references.py` — Phases 8 and 10 (transactions done).
 - Group `GET /balances` into one query if the account list ever grows — Phase 16.
