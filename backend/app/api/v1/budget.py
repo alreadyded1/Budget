@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session as DbSession
 
 from app.api.v1.pay_schedule import period_out
+from app.api.v1.subscriptions import bill_out
 from app.api.v1.transactions import transaction_outs
 from app.db import get_db
 from app.schemas.budget import (
@@ -114,4 +115,5 @@ def dashboard(db: DbSession = Depends(get_db)) -> DashboardOut:
         overspent=[OverspentOut(**asdict(row)) for row in board.overspent],
         balances=[BalanceOut(**balance.as_dict()) for balance in board.balances],
         recent=transaction_outs(db, board.recent),
+        upcoming_bills=[bill_out(bill) for bill in board.upcoming_bills],
     )

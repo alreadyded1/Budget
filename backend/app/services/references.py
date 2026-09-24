@@ -18,6 +18,8 @@ CountRefs = Callable[[DbSession, int], int]
 _payee_reassigners: dict[str, Reassign] = {}
 _category_reassigners: dict[str, Reassign] = {}
 _category_counters: dict[str, CountRefs] = {}
+#: (name, handler) where handler(db, transaction_ids) runs just before those rows go.
+_transaction_delete_listeners: dict[str, Callable[[DbSession, list[int]], int]] = {}
 
 
 def register_payee_reassigner(name: str, handler: Reassign) -> None:
@@ -30,6 +32,18 @@ def register_category_reassigner(name: str, handler: Reassign) -> None:
 
 def register_category_counter(name: str, handler: CountRefs) -> None:
     _category_counters[name] = handler
+
+
+def register_transaction_delete_listener(
+    name: str, handler: Callable[[DbSession, list[int]], int]
+) -> None:
+    _transaction_delete_listeners[name] = handler
+
+
+def transactions_deleting(db: DbSession, transaction_ids: list[int]) -> None:
+    """Tell other tables that these transactions are about to be deleted."""
+    for handler in _transaction_delete_listeners.values():
+        handler(db, transaction_ids)
 
 
 def reassign_payee(db: DbSession, source_id: int, target_id: int) -> dict[str, int]:

@@ -15,6 +15,7 @@ function line(id: number, kind: PlanLine['kind'], planned: number, actual: numbe
     is_sinking_fund: false,
     is_hidden: false,
     note: null,
+    committed_cents: 0,
   }
 }
 

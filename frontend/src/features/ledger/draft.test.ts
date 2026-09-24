@@ -6,6 +6,7 @@ import type { Transaction } from '../../api/transactions'
 import {
   buildSave,
   centsToInput,
+  draftFromBill,
   draftFromTransaction,
   emptyDraft,
   newSplit,
@@ -260,5 +261,41 @@ describe('centsToInput', () => {
     expect(centsToInput(1234)).toBe('12.34')
     expect(centsToInput(-5)).toBe('0.05')
     expect(centsToInput(100000)).toBe('1000.00')
+  })
+})
+
+describe('draftFromBill', () => {
+  const bill = {
+    occurrence_id: 5,
+    subscription_id: 1,
+    name: 'Kroger delivery',
+    payee_id: 7,
+    category_id: 11,
+    account_id: 2,
+    due_date: '2026-09-15',
+    amount_cents: 1599,
+    status: 'upcoming' as const,
+    overdue: false,
+    transaction_id: null,
+    url: null,
+  }
+
+  it('prefills payee, category, amount, date and the paying account', () => {
+    expect(draftFromBill(bill, lookups, null)).toMatchObject({
+      accountId: 2,
+      accountText: 'Savings',
+      date: '2026-09-15',
+      payeeText: 'Kroger',
+      payeeId: 7,
+      categoryText: 'Groceries',
+      categoryId: 11,
+      outflow: '15.99',
+      inflow: '',
+    })
+  })
+
+  it('keeps the ledger account and falls back to the bill name for payee', () => {
+    const draft = draftFromBill({ ...bill, payee_id: null }, lookups, lookups.accounts[0])
+    expect(draft).toMatchObject({ accountId: 1, payeeText: 'Kroger delivery', payeeId: null })
   })
 })

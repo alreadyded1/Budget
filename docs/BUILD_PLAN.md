@@ -176,10 +176,10 @@ Implement DEPLOYMENT.md.
 - `pb` on the PATH for admin tasks
 
 **Done when**
-- [ ] One script takes a fresh Debian 13 LXC to a running app, reachable over HTTPS through NPM.
-- [ ] The app comes back after an LXC reboot.
-- [ ] The nightly backup produces a DB copy and a receipts archive, and restoring onto a scratch copy works.
-- [ ] `update.sh` backs up, migrates, rebuilds, restarts, and runs a health check.
+- [x] One script takes a fresh Debian 13 LXC to a running app, reachable over HTTPS through NPM.
+- [x] The app comes back after an LXC reboot.
+- [x] The nightly backup produces a DB copy and a receipts archive, and restoring onto a scratch copy works.
+- [x] `update.sh` backs up, migrates, rebuilds, restarts, and runs a health check.
 
 ## Phase 8 — Subscriptions and bill calendar
 - Subscriptions CRUD and price history.
@@ -192,9 +192,9 @@ Implement DEPLOYMENT.md.
 - Dashboard upcoming-bills widget.
 
 **Done when**
-- [ ] Tests pass for monthly on the 31st, annual, and custom every-6-weeks schedules. Edits never touch paid
+- [x] Tests pass for monthly on the 31st, annual, and custom every-6-weeks schedules. Edits never touch paid
       occurrences.
-- [ ] The planner shows committed bill amounts per category for the period.
+- [x] The planner shows committed bill amounts per category for the period.
 
 ## Phase 9 — Daily job and ntfy
 - `pb run-daily`:

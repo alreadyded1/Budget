@@ -12,6 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.errors import AppError
 from app.models import Account, Payee, Transaction, TransactionSplit
 from app.services import balances as balances_service
+from app.services import references
 from app.services import transactions as transactions_service
 
 DEFAULT_LIMIT = 100
@@ -292,6 +293,7 @@ def bulk_delete(
         elif not row.is_transfer:
             touched.add(row.account_id)
             deleted.append(row.id)
+            references.transactions_deleting(db, [row.id])
             db.delete(row)
     db.commit()
     return transactions_service.TransactionResult(

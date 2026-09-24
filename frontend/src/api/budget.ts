@@ -1,4 +1,5 @@
 import { apiFetch } from './client'
+import type { Bill } from './subscriptions'
 import type { Balance, Transaction } from './transactions'
 
 export type PlanKind = 'expense' | 'income'
@@ -23,6 +24,8 @@ export type PlanLine = {
   is_sinking_fund: boolean
   is_hidden: boolean
   note: string | null
+  /** Bills due in the period for this category. */
+  committed_cents: number
 }
 
 export type PlanGroup = {
@@ -71,6 +74,7 @@ export type Dashboard = {
   overspent: Overspent[]
   balances: Balance[]
   recent: Transaction[]
+  upcoming_bills: Bill[]
 }
 
 export function fetchBudget(

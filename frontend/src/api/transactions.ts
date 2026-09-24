@@ -44,10 +44,21 @@ export type Balance = {
   reconciled_cents: number
 }
 
+export type BillMatch = {
+  occurrence_id: number
+  name: string
+  due_date: string
+  amount_cents: number
+}
+
 export type MutationResult = {
   transactions: Transaction[]
   deleted_ids: number[]
   balances: Balance[]
+  /** On a create: an unpaid bill this looks like the payment for. */
+  bill_match?: BillMatch | null
+  /** On a create: the bill it was asked to mark paid. */
+  paid_occurrence_id?: number | null
 }
 
 export type SplitInput = {
@@ -64,6 +75,8 @@ export type TransactionInput = {
   memo?: string | null
   status?: TransactionStatus
   splits?: SplitInput[] | null
+  /** Marks this bill paid by the new transaction ("Mark paid"). */
+  subscription_occurrence_id?: number | null
 }
 
 export type TransferInput = {

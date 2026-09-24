@@ -1,8 +1,12 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { NavLink, useParams, useSearchParams } from 'react-router-dom'
 
 import type { Account } from '../../api/accounts'
-import type { LedgerFilters, Transaction } from '../../api/transactions'
+import { queryKeys } from '../../api/keys'
+import { fetchBill, payBill } from '../../api/subscriptions'
+import type { Bill } from '../../api/subscriptions'
+import type { BillMatch, LedgerFilters, Transaction } from '../../api/transactions'
 import { useToast } from '../../components/toastContext'
 import { useRowNavigation } from '../../components/useRowNavigation'
 import { isValidIsoDate, todayIso } from '../../lib/dates'
@@ -13,7 +17,7 @@ import { FilterBar } from './FilterBar'
 import { flatRows } from './ledgerCache'
 import { LedgerTable } from './LedgerTable'
 import { ShortcutOverlay } from './ShortcutOverlay'
-import { buildSave, draftAmount, draftFromTransaction, emptyDraft } from './draft'
+import { buildSave, draftAmount, draftFromBill, draftFromTransaction, emptyDraft } from './draft'
 import type { Draft, Lookups } from './draft'
 import {
   errorMessage,
@@ -31,8 +35,15 @@ export function LedgerPage() {
   const accountId = param === undefined ? null : Number(param)
   const reference = useReferenceData()
   const account = reference.accounts.find((row) => row.id === accountId)
+  // "Mark paid" from the calendar arrives as ?bill=<occurrence id>.
+  const billId = Number(search.get('bill')) || null
+  const bill = useQuery({
+    queryKey: queryKeys.bill(billId ?? 0),
+    queryFn: ({ signal }) => fetchBill(billId!, signal),
+    enabled: billId !== null,
+  })
 
-  if (reference.loading) {
+  if (reference.loading || (billId !== null && bill.isPending)) {
     return <p className="text-sm text-slate-500">Loading…</p>
   }
   if (accountId !== null && account === undefined) {
@@ -45,6 +56,7 @@ export function LedgerPage() {
       account={account ?? null}
       reference={reference}
       linked={linkedFilters(search)}
+      bill={bill.data?.status === 'upcoming' ? bill.data : null}
     />
   )
 }
@@ -111,12 +123,15 @@ function LedgerView({
   account,
   reference,
   linked,
+  bill,
 }: {
   account: Account | null
   reference: Reference
   linked: Linked
+  bill: Bill | null
 }) {
   const toast = useToast()
+  const queryClient = useQueryClient()
   const accountId = account?.id ?? null
   // Scope filters come only from a link and sit outside the filter bar.
   const [scope, setScope] = useState<LedgerFilters>(() => {
@@ -149,7 +164,11 @@ function LedgerView({
     [reference.accounts, reference.payees, reference.categories, today],
   )
 
-  const [draft, setDraft] = useState<Draft>(() => emptyDraft(today, account))
+  const [draft, setDraft] = useState<Draft>(() =>
+    bill ? draftFromBill(bill, lookups, account) : emptyDraft(today, account),
+  )
+  // The bill this entry row is paying, until it saves or is cleared.
+  const [paying, setPaying] = useState<Bill | null>(bill)
   const entryRef = useRef<EntryRowHandle>(null)
   const editRef = useRef<EntryRowHandle>(null)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -193,12 +212,54 @@ function LedgerView({
     setDraft(cleared)
     entryRef.current?.focus('payee')
 
-    mutations.create.mutate(built.plan, {
+    const bill = paying
+    const plan =
+      bill && built.plan.kind === 'transaction'
+        ? {
+            ...built.plan,
+            body: { ...built.plan.body, subscription_occurrence_id: bill.occurrence_id },
+          }
+        : built.plan
+    setPaying(null)
+
+    mutations.create.mutate(plan, {
+      onSuccess: ({ result }) => {
+        if (result.paid_occurrence_id && bill) {
+          toast(`Marked ${bill.name} due ${bill.due_date} paid.`, 'success')
+        } else if (result.bill_match && result.transactions[0]) {
+          offerLink(result.bill_match, result.transactions[0].id)
+        }
+      },
       onError: (error) => {
         // The server said no: the row comes back exactly as it was typed.
         setDraft(typed)
+        setPaying(bill)
         toast(errorMessage(error))
         entryRef.current?.focus('payee')
+      },
+    })
+  }
+
+  /** SPEC §9: a save that looks like a bill payment offers to link it. */
+  function offerLink(match: BillMatch, transactionId: number) {
+    toast(`Looks like ${match.name} due ${match.due_date}.`, 'success', {
+      durationMs: 10_000,
+      action: {
+        label: 'Link',
+        onClick: () =>
+          void payBill(match.occurrence_id, transactionId)
+            .then(() => {
+              toast(`Marked ${match.name} paid.`, 'success')
+              for (const key of [
+                queryKeys.bills,
+                queryKeys.subscriptions,
+                queryKeys.budgets,
+                queryKeys.dashboard,
+              ]) {
+                void queryClient.invalidateQueries({ queryKey: key })
+              }
+            })
+            .catch((error: unknown) => toast(errorMessage(error))),
       },
     })
   }
@@ -207,6 +268,7 @@ function LedgerView({
     const blank = emptyDraft(draft.date, account)
     const isBlank =
       !draft.payeeText && !draft.categoryText && !draft.memo && !draft.outflow && !draft.inflow
+    setPaying(null)
     if (isBlank) {
       // Nothing left to clear: step out of the row so the row shortcuts work.
       ;(document.activeElement as HTMLElement | null)?.blur()
@@ -470,6 +532,20 @@ function LedgerView({
             className="rounded px-1.5 text-xs text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
           >
             Show all
+          </button>
+        </div>
+      )}
+      {paying && (
+        <div className="mb-2 flex items-center gap-2 text-sm" data-testid="paying-bill">
+          <span className="rounded bg-sky-100 px-2 py-0.5 text-sky-900 dark:bg-sky-900/50 dark:text-sky-100">
+            Paying {paying.name} due {paying.due_date} · Enter saves and marks it paid
+          </span>
+          <button
+            type="button"
+            onClick={() => setPaying(null)}
+            className="rounded px-1.5 text-xs text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+          >
+            Don’t link
           </button>
         </div>
       )}

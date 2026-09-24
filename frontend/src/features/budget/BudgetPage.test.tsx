@@ -28,6 +28,7 @@ function line(
     is_sinking_fund: false,
     is_hidden: false,
     note: null,
+    committed_cents: 0,
   }
 }
 

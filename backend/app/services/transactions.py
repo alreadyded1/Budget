@@ -20,6 +20,7 @@ from app.services import accounts as accounts_service
 from app.services import balances as balances_service
 from app.services import categories as categories_service
 from app.services import payees as payees_service
+from app.services import references
 
 #: Changing any of these on a reconciled transaction needs confirm=true (SPEC §6),
 #: as does deleting it. A memo, payee or category fix does not.
@@ -248,6 +249,7 @@ def delete_transaction(
         return _delete_transfer(db, transaction)
 
     account_id = transaction.account_id
+    references.transactions_deleting(db, [transaction.id])
     db.delete(transaction)
     db.commit()
     return TransactionResult(
@@ -432,6 +434,7 @@ def _delete_transfer(db: DbSession, leg: Transaction) -> TransactionResult:
     legs = _legs_of(db, leg.transfer_id or "")
     deleted = [row.id for row in legs]
     touched = [row.account_id for row in legs]
+    references.transactions_deleting(db, deleted)
     for row in legs:
         db.delete(row)
     db.commit()

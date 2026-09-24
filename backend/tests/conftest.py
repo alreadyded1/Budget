@@ -97,6 +97,7 @@ def _restore_registries() -> Iterator[None]:
         references._payee_reassigners,
         references._category_reassigners,
         references._category_counters,
+        references._transaction_delete_listeners,
     )
     snapshots = [dict(registry) for registry in registries]
     provider = payees_service._usage_provider

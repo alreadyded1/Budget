@@ -33,6 +33,8 @@ class TransactionCreate(BaseModel):
     status: Status = "uncleared"
     check_number: str | None = Field(default=None, max_length=32)
     splits: list[SplitIn] | None = None
+    #: Mark this bill paid by the new transaction ("Mark paid" from the calendar).
+    subscription_occurrence_id: int | None = None
 
 
 class TransactionUpdate(BaseModel):
@@ -81,12 +83,25 @@ class BalanceOut(BaseModel):
     reconciled_cents: int
 
 
+class BillMatchOut(BaseModel):
+    """An unpaid bill a newly saved transaction looks like the payment for (SPEC §9)."""
+
+    occurrence_id: int
+    name: str
+    due_date: datetime.date
+    amount_cents: int
+
+
 class MutationOut(BaseModel):
     """Mutations carry the aggregates they changed, so the UI never needs a refetch."""
 
     transactions: list[TransactionOut] = []
     deleted_ids: list[int] = []
     balances: list[BalanceOut] = []
+    #: Set on a create when the new transaction matches an unpaid bill.
+    bill_match: BillMatchOut | None = None
+    #: The bill this create marked paid, when it was asked to.
+    paid_occurrence_id: int | None = None
 
 
 class LedgerRowOut(BaseModel):

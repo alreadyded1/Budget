@@ -51,8 +51,11 @@ Port 8000 should only be reachable from the proxy. Use the Proxmox firewall on t
 
 1. **Datacenter → Firewall → Options**: Firewall = Yes. (Check first that the Datacenter rules
    still allow your own access to the Proxmox UI on 8006 and SSH to the host.)
-2. **CT → Network → net0 → Edit**: tick **Firewall**.
-3. **CT → Firewall → Add** these rules (direction `in`, action `ACCEPT`, enabled):
+2. **CT → Network → net0 → Edit**: tick **Firewall**. (The dialog shows the device's name as
+   `eth0`, the name inside the container. It is the same interface.)
+3. **CT → Firewall → Add** these rules (direction `in`, action `ACCEPT`, enabled). Leave
+   **Interface** and **Destination** empty: a CT rule already applies to that CT, and those
+   fields expect a `netN` name or an IP/alias, not the CT's ID.
 
    | Proto | Dest. port | Source | Comment |
    |---|---|---|---|

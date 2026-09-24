@@ -198,6 +198,9 @@ function ledgerCacheOps(queryClient: QueryClient, view: View) {
       // Budget actuals and the dashboard read the same transactions.
       void queryClient.invalidateQueries({ queryKey: queryKeys.budgets })
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard })
+      // A payment can pay (or, deleted, reopen) a bill.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.bills })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.subscriptions })
     },
 
     rows(): Transaction[] {

@@ -1,9 +1,8 @@
 # Progress
 
-**Current phase:** Phase 7 — Deploy the MVP to the Proxmox LXC (🟨 built; waiting on the go-live run)
-**Next step:** Run `deploy/GO-LIVE.md` on the real CT (after the PR to `main` is merged) and report
-back: which of the four boxes passed, and the output of anything that did not. Then tick Phase 7's
-boxes and plan Phase 8 (subscriptions and bill calendar).
+**Current phase:** Phase 9 — Daily job and ntfy (not started)
+**Next step:** Plan Phase 9 per docs/BUILD_PLAN.md and SPEC §10 — `pb run-daily` (auto-post, reminders,
+horizons, session sweep) and the ntfy client, including the backup-failure alert.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -15,8 +14,8 @@ boxes and plan Phase 8 (subscriptions and bill calendar).
 | 4 | Transactions backend | ✅ done | 2026-09-23 |
 | 5 | Ledger UI and fast entry | ✅ done | 2026-09-24 |
 | 6 | Budget planner and dashboard | ✅ done | 2026-09-24 |
-| 7 | Deploy MVP to LXC | 🟨 built, go-live pending | |
-| 8 | Subscriptions and bill calendar | ⬜ | |
+| 7 | Deploy MVP to LXC | ✅ done | 2026-09-24 |
+| 8 | Subscriptions and bill calendar | ✅ done | 2026-09-24 |
 | 9 | Daily job and ntfy | ⬜ | |
 | 10 | Import and rules | ⬜ | |
 | 11 | Reconciliation | ⬜ | |
@@ -33,8 +32,8 @@ browser click-through of CLI user → login form → signed in. The browser tool
 check could run. The server side of it is verified (see the session log below).
 
 † Phase 3 is built, but one "Done when" box cannot be closed from inside Phase 3: "merging moves
-transactions, subscriptions, and rules" needs tables that Phases 4, 8 and 10 add. Phase 4 has since
-registered transactions and proved that part; the box closes when subscriptions (Phase 8) and rules
+transactions, subscriptions, and rules" needs tables that Phases 4, 8 and 10 add. Phases 4 and 8 have
+since registered transactions and subscriptions and proved those parts; the box closes when rules
 (Phase 10) register theirs.
 
 ## Session log
@@ -45,6 +44,45 @@ registered transactions and proved that part; the box closes when subscriptions 
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 8 (Subscriptions and bill calendar)
+- **Done:**
+  - Migration `0007`: `subscriptions`, `subscription_price_history`, `subscription_occurrences`
+    (unique per subscription and due date; payment link set to null if the transaction goes).
+  - `app/domain/subscriptions.py` (pure): due dates for every frequency by index with the month-end
+    clamp, next due, exact annual and monthly equivalents (D-063), and payment matching (D-064).
+  - `app/services/subscriptions.py`: CRUD, price history, ~13-month materialization with lazy
+    extension, rebuild of future unpaid occurrences on edit (D-066), pay / skip / reopen, the best
+    match for a new transaction, committed bills per category, and registrations so a payee merge
+    or category delete moves subscriptions and a deleted payment reopens its bill (D-067).
+  - Endpoints: `/subscriptions` CRUD, `GET /bills?from=&to=`, `GET /bills/{id}`,
+    `POST /bills/{id}/{pay|skip|reopen}`; `POST /transactions` takes `subscription_occurrence_id` and
+    answers with `paid_occurrence_id` or a `bill_match`; budget lines carry `committed_cents`; the
+    dashboard carries `upcoming_bills`.
+  - Planner: new periods prefill with template + bills (D-065), and every line shows "$X in bills".
+  - UI: the Subscriptions page (sortable list, next due, price-rise badge, monthly/annual totals and
+    by category, keyboard add/edit form, pause / resume / cancel / delete, manage link); the bill
+    calendar (month grid by the household's week start, paid / upcoming / overdue / skipped colours,
+    paydays marked, `[` `]` `t`, a list on phones, a detail panel with Mark paid / Skip / Unskip);
+    Mark paid opens the paying account's ledger with the entry row prefilled and links on Enter; a
+    ledger save that looks like a bill payment offers a Link toast; the dashboard's Upcoming bills card.
+  - Tests: 356 backend (+28 API, +34 domain), 130 frontend (+14), 3 E2E (+1: add a subscription from
+    the keyboard, see it on the calendar with the payday marked, Mark paid through the ledger, and find
+    the committed amount in the planner, with no document load).
+- **Deviations from plan:**
+  - `transactions.subscription_occurrence_id` (deferred by D-044) was not added; the occurrence's own
+    `transaction_id` is the single link (D-067).
+  - Added `POST /bills/{id}/reopen` (undo a skip, or mark a payment unpaid) and `GET /bills/{id}` for the
+    Mark paid prefill.
+  - Found by the tests: a same-day price change overwrote the history row instead of recording it, and
+    creating a subscription dropped the schema defaults (frequency, status) — both fixed.
+- **Known issues:**
+  - Auto-post and reminders are stored but not acted on until the Phase 9 daily job.
+  - Bills are only materialized from today forward: a subscription added mid-cycle has no row for a
+    due date already past.
+  - Another household member's change shows after the 30-second query staleness or a reload of that
+    view, not instantly.
+- **Next step:** Plan Phase 9 (daily job and ntfy).
 
 ### 2026-09-24 — Phase 7 (Deploy the MVP to the Proxmox LXC)
 - **Done:**
@@ -77,7 +115,12 @@ registered transactions and proved that part; the box closes when subscriptions 
     ntfy alert.
   - `install.sh` and `update.sh` have not been run end to end yet; the go-live run is their first.
   - Backups sit on the same disk as the database; vzdump of the CT is the off-box copy.
-- **Next step:** Merge the PR, run `deploy/GO-LIVE.md` on the CT, and report back.
+- **Go-live (reported by the user, 2026-09-24):** live at `https://payday.h-dungeon.com` behind NPM
+  (`10.10.20.98`), Proxmox firewall rules in place, back after a reboot, nightly backup and the
+  scratch restore both worked, and `update.sh` ran clean. All four boxes ticked. The firewall steps
+  now say that the net0 dialog shows `eth0` and that a CT rule leaves Interface and Destination
+  empty — both came up during setup.
+- **Next step:** Plan Phase 8 (subscriptions and bill calendar).
 
 ### 2026-09-24 — Phase 6 (Budget planner and dashboard)
 - **Done:**
@@ -376,16 +419,17 @@ registered transactions and proved that part; the box closes when subscriptions 
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
 - Expired-session sweep inside `pb run-daily` — Phase 9.
 - ntfy alert when the nightly backup fails (`OnFailure=` on the backup unit) — Phase 9.
+- Auto-post of due bills and bill reminders (`remind_days_before`) in `pb run-daily` — Phase 9.
+- Extend subscription occurrences from the daily job too, not only on read — Phase 9.
 - `ensure_horizon()` should also run from the daily job so the timeline never ages — Phase 9.
-- Register subscriptions and rules with `app/services/references.py` — Phases 8 and 10 (transactions done).
+- Register rules with `app/services/references.py` — Phase 10 (transactions and subscriptions done).
 - Group `GET /balances` into one query if the account list ever grows — Phase 16.
 - Group the payee usage and autofill queries into one query for the payee list — Phase 16.
 - Extend the E2E suite beyond the ledger and planner flows — Phase 16 (ARCHITECTURE §Testing).
-- Subscription bills in the period prefill, and the "committed bills" hint per category — Phase 8.
 - Sinking-fund carryover in the planner — Phase 13.
 - Collapsible groups on the planner — Phase 16.
-- Transaction columns deferred to their own phases: subscription_occurrence_id (8), import_batch_id and
-  import_key (10), reconciliation_id (11).
+- Transaction columns deferred to their own phases: import_batch_id and import_key (10),
+  reconciliation_id (11). subscription_occurrence_id is not needed (D-067).
 - ntfy settings UI and the runtime HTTP client choice — Phase 9.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
 - First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.

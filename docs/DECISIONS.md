@@ -386,3 +386,38 @@ The build session has no Proxmox, no systemd and no NPM. → Everything that can
 is (restore round trips in pytest, shellcheck, `systemd-analyze verify`, a `runuser` scratch restore),
 and `deploy/GO-LIVE.md` walks the household through the four boxes on the real CT. They stay open
 until that walk is reported back.
+
+## D-063 Monthly and annual equivalents (confirmed with the user, 2026-09-24)
+The annual cost is exact — weekly × 52, biweekly × 26, monthly × 12, quarterly × 4, semiannual × 2,
+annual × 1, every N days × 365 ÷ N, every N weeks × 52 ÷ N, every N months × 12 ÷ N — and monthly is
+that ÷ 12. Both are exact fractions rounded once, half away from zero. Totals count active
+subscriptions only.
+
+## D-064 Payment matching (confirmed with the user, 2026-09-24)
+A saved transaction matches an unpaid bill when the payee is the same, the date is within ±3 days of
+the due date, and the amount is within 10% or $1.00, whichever is larger. It is a suggestion only:
+the create response carries the closest match and a toast offers "Link". Nothing links unasked, and
+one transaction pays at most one bill.
+
+## D-065 Bills in the planner: template plus bills (confirmed with the user, 2026-09-24)
+A new period is prefilled with each category's template amount **plus** the bills due in it (SPEC §8
+literally). Apply template uses the same numbers; Prorate scales the template and adds bills whole,
+because bills fall on real dates. Every line shows its committed bills (skipped ones excluded) in any
+period; periods already opened keep their planned amounts (D-056), so set template amounts to exclude
+bills that subscriptions already cover.
+
+## D-066 Pausing, cancelling and editing a subscription (confirmed with the user, 2026-09-24)
+Occurrences are materialized from today to ~13 months ahead. An edit to anything that shapes the
+schedule, the amount or the status deletes the **future upcoming** occurrences and rebuilds them;
+paid, skipped and overdue (past, unpaid) rows are never touched. Pause and cancel delete future
+upcoming ones; resuming rebuilds them. A price change adds a price-history row dated today, so the
+old amount stays on record and a rise shows a badge. Deleting a subscription deletes its occurrences
+but never its payments.
+
+## D-067 The payment link lives on the occurrence only
+DATA_MODEL has `subscription_occurrences.transaction_id`, and D-044 deferred a
+`transactions.subscription_occurrence_id` to this phase. One link is enough: the occurrence points at
+its payment, and deleting that transaction (single, transfer or bulk) sends the bill back to upcoming
+through a new "transaction deleting" hook in `app/services/references.py`. "Mark paid" passes
+`subscription_occurrence_id` on the create request so the transaction and the link are written in one
+call, and an unknown bill is refused before anything is written.
