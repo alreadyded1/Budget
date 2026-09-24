@@ -591,3 +591,32 @@ A sinking-fund goal needs an expense category that no other fund goal uses (409 
 Creating it sets the category's `is_sinking_fund`; archiving or deleting the goal leaves the flag. The
 planner shows a fund balance only for categories with a fund goal. Deleting a goal's category asks for a
 reassignment first (goals register as a category reference).
+
+## D-094 Accounts remember the day they were closed (confirmed with the user, 2026-09-24)
+`accounts.closed_on` is set when an account is closed and cleared when it is reopened. Net worth history
+counts an account from its opening date through its closed-on date; the current total counts open
+accounts only (SPEC §14). Accounts closed before the column existed took their last update's date.
+
+## D-095 Net worth history is month-ends, today last (confirmed with the user, 2026-09-24)
+One point per month-end over 12 or 24 months (24 by default) or since the first account opened, with
+today as the current month's point. Balances are signed, so net worth is a plain sum; manual-valuation
+accounts use their latest value on or before each date. Breakdowns and tables show liabilities as
+amounts owed. The dashboard's account card shows today's total and links to the report.
+
+## D-096 The payoff simulator's month (confirmed with the user, 2026-09-24)
+Month 1 is next month, from today's balances. Each month: interest = balance × APR ÷ 12, rounded to the
+cent half away from zero, is added; every debt gets its minimum (or what it owes); the rest of the
+budget goes to the first debt in the strategy's order, and any overflow to the next in the same month.
+The budget is every included debt's minimum plus the extra, so a paid-off debt's minimum rolls on.
+Minimums stay fixed as entered; the page says these are estimates.
+
+## D-097 Payoff order and which debts are included (confirmed with the user, 2026-09-24)
+Open liability accounts that owe money. A debt without an APR or minimum payment is left out and listed
+with the reason and a link to the Accounts page, which now edits both inline. The order is fixed at the
+start: snowball by smallest balance (ties: higher APR), avalanche by highest APR (ties: smaller
+balance), custom as saved with any unlisted debt appended. The page previews an extra payment,
+strategy or custom order without saving; Save plan stores them in the single `debt_plan` row.
+
+## D-098 A plan that cannot finish stops at 50 years (confirmed with the user, 2026-09-24)
+If minimums never cover the interest the simulation stops after 600 months and reports "Not within
+50 years" instead of a debt-free date.

@@ -7,6 +7,7 @@ const NAV = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/budget', label: 'Budget' },
   { to: '/goals', label: 'Goals' },
+  { to: '/debt', label: 'Debt payoff' },
   { to: '/transactions', label: 'Transactions' },
   { to: '/accounts', label: 'Accounts' },
   { to: '/subscriptions', label: 'Subscriptions' },

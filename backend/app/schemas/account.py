@@ -62,6 +62,7 @@ class AccountOut(BaseModel):
     last4: str | None
     sort_order: int
     is_closed: bool
+    closed_on: date | None = None
     valuation_mode: ValuationMode
     apr_bps: int | None
     min_payment_cents: int | None

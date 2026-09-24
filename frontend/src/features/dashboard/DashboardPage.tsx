@@ -6,6 +6,7 @@ import { fetchDashboard } from '../../api/budget'
 import type { BudgetView } from '../../api/budget'
 import { ApiRequestError } from '../../api/client'
 import { queryKeys } from '../../api/keys'
+import { fetchNetWorth } from '../../api/netWorth'
 import { formatCents } from '../../lib/money'
 import { TRANSFER_PREFIX } from '../ledger/draft'
 import { useBillActions } from '../calendar/useBillActions'
@@ -93,6 +94,11 @@ function PeriodSummary({ budget }: { budget: BudgetView | null }) {
 /** The dashboard: the current pay period at a glance (BUILD_PLAN Phase 6). */
 export function DashboardPage() {
   const reference = useReferenceData()
+  // Only today's total is shown, so one month is enough.
+  const netWorth = useQuery({
+    queryKey: queryKeys.netWorth('1'),
+    queryFn: ({ signal }) => fetchNetWorth('1', signal),
+  })
   const billActions = useBillActions()
   const board = useQuery({
     queryKey: queryKeys.dashboard,
@@ -166,6 +172,16 @@ export function DashboardPage() {
                 </li>
               ))}
             </ul>
+          )}
+          {netWorth.data && data.balances.length > 0 && (
+            <div className="mt-2 flex justify-between gap-3 border-t border-slate-200 pt-2 text-sm dark:border-slate-800">
+              <Link to="/reports/net-worth" className="font-medium hover:underline">
+                Net worth
+              </Link>
+              <span data-testid="dashboard-net-worth">
+                <Amount cents={netWorth.data.today.net_cents} />
+              </span>
+            </div>
           )}
         </Card>
 

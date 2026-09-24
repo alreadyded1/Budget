@@ -184,6 +184,9 @@ Sinking fund balance = `starting_balance_cents` + Σ `planned_cents` for its cat
 - `extra_monthly_cents`
 - `custom_order` — JSON array of account IDs
 
+`accounts.closed_on` (nullable date) is set when an account is closed and cleared when it reopens;
+net worth history counts an account through that day (D-094).
+
 ## Import and rules
 **import_profiles**
 - `name`, `account_id` (nullable)

@@ -13,7 +13,7 @@ import type { Choice } from './ReportFilters'
 import {
   CategoryTrendReport,
   IncomeVsExpenseReport,
-  NetWorthPlaceholder,
+  NetWorthReport,
   PlannedVsActualReport,
   SpendingByCategoryReport,
   SpendingByPayeeReport,
@@ -28,13 +28,13 @@ const REPORTS = [
   { key: 'income', label: 'Income vs. expense', view: IncomeVsExpenseReport },
   { key: 'payees', label: 'Payees', view: SpendingByPayeeReport },
   { key: 'trend', label: 'Category trend', view: CategoryTrendReport },
-  { key: 'net-worth', label: 'Net worth', view: NetWorthPlaceholder },
+  { key: 'net-worth', label: 'Net worth', view: NetWorthReport },
   { key: 'subscriptions', label: 'Subscriptions', view: SubscriptionsReport },
   { key: 'transactions', label: 'Transactions', view: TransactionListReport },
 ] as const
 
 /** Filters that belong to one report and do not follow you to the next tab. */
-const LOCAL_PARAMS = ['on_budget', 'flow', 'by']
+const LOCAL_PARAMS = ['on_budget', 'flow', 'by', 'months']
 
 /** Reports (SPEC §16): one filter row, a tab per report, tables that export to CSV. */
 export default function ReportsPage() {

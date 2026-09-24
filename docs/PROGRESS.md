@@ -1,8 +1,8 @@
 # Progress
 
-**Current phase:** Phase 14 — Net worth and debt payoff (not started)
-**Next step:** Plan Phase 14 per docs/BUILD_PLAN.md and SPEC §14 — net worth history and breakdown
-(which also fills the Reports "Net worth" tab), and the debt payoff simulator.
+**Current phase:** Phase 15 — Receipt attachments (not started)
+**Next step:** Plan Phase 15 per docs/BUILD_PLAN.md and SPEC §15 — uploads with type and size checks,
+thumbnails (HEIC too), authenticated download, delete with the transaction, and receipts in backups.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -21,7 +21,7 @@
 | 11 | Reconciliation | ✅ done | 2026-09-24 |
 | 12 | Reports | ✅ done | 2026-09-24 |
 | 13 | Goals and sinking funds | ✅ done | 2026-09-24 |
-| 14 | Net worth and debt payoff | ⬜ | |
+| 14 | Net worth and debt payoff | ✅ done | 2026-09-24 |
 | 15 | Receipt attachments | ⬜ | |
 | 16 | Polish and hardening | ⬜ | |
 
@@ -39,6 +39,34 @@ check could run. The server side of it is verified (see the session log below).
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-24 — Phase 14 (Net worth and debt payoff)
+- **Done:**
+  - Migration `0012`: `accounts.closed_on` (backfilled for closed accounts) and the single-row
+    `debt_plan`.
+  - `app/domain/net_worth.py` (month-ends, which accounts count when) and
+    `app/domain/debt_payoff.py` (the month-by-month simulator), pure and tested: the single loan
+    matches a textbook amortization to the cent on all 60 rows, plus rollover, overflow, ties and a plan
+    that never finishes.
+  - `GET /net-worth` (today, month-end history, breakdown by type); `GET/PUT /debt-plan` and
+    `GET /debt-plan/simulation` (all strategies side by side, a schedule, and unsaved previews);
+    `DELETE /accounts/{id}/valuations/{id}`; closing an account records the day.
+  - UI: the Reports → Net worth tab (total, month-end line chart, history and by-type tables with
+    CSV); net worth on the dashboard's account card; `/debt` (debts and what is left out, extra per
+    month, strategy, custom order with Alt+↑/↓, comparison, month-by-month schedule with CSV); on the
+    Accounts page, inline APR and minimum on debts, "Update value" with value history for accounts
+    valued by hand, and a "valued by hand" option when adding one.
+  - Decisions D-094 to D-098.
+  - Tests: 516 backend (+24: 14 domain, 10 API covering both Done-when boxes), 182 frontend (+5),
+    8 E2E (+1: fix a debt's APR from the planner's link, preview and save a plan, value a house by hand
+    and see it in net worth).
+- **Deviations from plan:**
+  - The Accounts page had no way to enter an APR or minimum, which the planner needs, or to create a
+    manually valued account; both were added.
+  - `debt_plan` rows and `accounts.closed_on` are recorded in DATA_MODEL.
+- **Known issues:**
+  - After merging, run `update.sh` on the LXC: it applies migration `0012`.
+- **Next step:** Plan Phase 15 (receipt attachments).
 
 ### 2026-09-24 — Phase 13 (Goals and sinking funds)
 - **Done:**
@@ -557,7 +585,6 @@ check could run. The server side of it is verified (see the session log below).
 - Collapsible groups on the planner — Phase 16.
 - Re-apply a rule created during review to the batch's other staged rows — Phase 16.
 - A reconciliation report (statement vs. ledger per period), if wanted — Phase 16.
-- Net worth over time report — Phase 14 (tab already in Reports).
 - Ledger: learn a new payee's last category from the optimistic row, not only from the server's
   reply, so a fast typist's next entry prefills — Phase 16.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.

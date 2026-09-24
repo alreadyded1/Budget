@@ -259,8 +259,8 @@ Implement DEPLOYMENT.md.
   month-by-month schedule.
 
 **Done when**
-- [ ] The simulator matches a hand-checked amortization schedule to the cent for a single loan.
-- [ ] The net worth history is correct when accounts are opened or closed mid-range.
+- [x] The simulator matches a hand-checked amortization schedule to the cent for a single loan.
+- [x] The net worth history is correct when accounts are opened or closed mid-range.
 
 ## Phase 15 — Receipt attachments
 - Upload endpoint: type and size checks, sha256, storage path, thumbnails (including HEIC).

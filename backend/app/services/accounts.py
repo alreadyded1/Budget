@@ -100,9 +100,16 @@ def update_account(db: DbSession, account_id: int, changes: dict) -> Account:
     return account
 
 
-def set_closed(db: DbSession, account_id: int, is_closed: bool) -> Account:
-    """Closing hides an account from entry lists but keeps all its history (SPEC §3)."""
+def set_closed(db: DbSession, account_id: int, is_closed: bool, on: date | None = None) -> Account:
+    """Closing hides an account from entry lists but keeps all its history (SPEC §3).
+
+    The closing day is kept so net worth history stops counting it after then (D-094).
+    """
     account = get_account(db, account_id)
+    if is_closed and not account.is_closed:
+        account.closed_on = on or date.today()
+    elif not is_closed:
+        account.closed_on = None
     account.is_closed = is_closed
     db.commit()
     db.refresh(account)
@@ -163,3 +170,11 @@ def set_valuation(
     db.commit()
     db.refresh(valuation)
     return valuation
+
+
+def delete_valuation(db: DbSession, account_id: int, valuation_id: int) -> None:
+    valuation = db.get(AccountValuation, valuation_id)
+    if valuation is None or valuation.account_id != account_id:
+        raise AppError(404, "Valuation not found", "valuation_not_found")
+    db.delete(valuation)
+    db.commit()

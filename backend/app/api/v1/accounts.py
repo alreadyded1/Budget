@@ -1,6 +1,6 @@
 """Accounts. Balances arrive with Phase 4."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session as DbSession
 
 from app.db import get_db
@@ -76,3 +76,11 @@ def add_valuation(
         db, account_id, payload.date, payload.balance_cents, payload.note
     )
     return ValuationOut.model_validate(valuation)
+
+
+@router.delete("/{account_id}/valuations/{valuation_id}", status_code=204)
+def delete_valuation(
+    account_id: int, valuation_id: int, db: DbSession = Depends(get_db)
+) -> Response:
+    service.delete_valuation(db, account_id, valuation_id)
+    return Response(status_code=204)

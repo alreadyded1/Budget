@@ -25,6 +25,11 @@ export const queryKeys = {
   reconcile: ['reconcile'] as const,
   reports: ['reports'] as const,
   goals: ['goals'] as const,
+  netWorth: (range: string) => ['net-worth', range] as const,
+  netWorthAll: ['net-worth'] as const,
+  debtPlan: ['debt-plan'] as const,
+  debtSimulation: (extra: number | null, strategy: string | null, order: number[]) =>
+    ['debt-plan', 'simulation', extra, strategy, order] as const,
   goalList: (archived: boolean) => ['goals', { archived }] as const,
   report: (name: string, query: string) => ['reports', name, query] as const,
   worksheet: (accountId: number, statementDate: string) =>

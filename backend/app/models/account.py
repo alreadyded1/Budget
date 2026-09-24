@@ -64,6 +64,8 @@ class Account(TimestampMixin, Base):
     last4: Mapped[str | None] = mapped_column(String(4), default=None)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     is_closed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    #: The day it was closed; net worth history stops counting it after this (D-094).
+    closed_on: Mapped[date | None] = mapped_column(Date, default=None)
     valuation_mode: Mapped[str] = mapped_column(
         String(16), default="transactions", server_default="transactions"
     )
