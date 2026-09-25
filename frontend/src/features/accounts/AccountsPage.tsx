@@ -10,6 +10,8 @@ import { queryKeys } from '../../api/keys'
 import { fetchBalances } from '../../api/transactions'
 import { useToast } from '../../components/toastContext'
 import { DebtFields } from './DebtFields'
+import { OpeningPanel } from './OpeningPanel'
+import { describeOwed, owedToBalance, tracksOwed } from './owed'
 import { LowBalanceField } from './LowBalanceField'
 import { ValuationPanel } from './ValuationPanel'
 import { parseApr } from '../../lib/apr'
@@ -31,9 +33,6 @@ const TYPES: { value: AccountType; label: string }[] = [
 ]
 
 const TYPE_LABEL = Object.fromEntries(TYPES.map((type) => [type.value, type.label]))
-
-/** Debts the payoff planner reads an APR and minimum payment for (SPEC §3, §14). */
-const DEBT_TYPES = new Set<AccountType>(['credit_card', 'loan', 'mortgage', 'other_liability'])
 
 /** Types that can be valued by hand instead of by their transactions (SPEC §3). */
 const MANUAL_TYPES = new Set<AccountType>(['investment', 'other_asset', 'other_liability'])
@@ -59,6 +58,7 @@ export function AccountsPage() {
   const [apr, setApr] = useState('')
   const [minPayment, setMinPayment] = useState('')
   const [valuing, setValuing] = useState<number | null>(null)
+  const [editingOpening, setEditingOpening] = useState<number | null>(null)
   const [showClosed, setShowClosed] = useState(false)
 
   const invalidate = () => {
@@ -102,16 +102,17 @@ export function AccountsPage() {
   if (isPending || !data) return <p className="text-sm text-slate-500">Loading…</p>
 
   const visible = data.items.filter((account) => showClosed || !account.is_closed)
+  const addingDebt = tracksOwed(type, manual && MANUAL_TYPES.has(type) ? 'manual' : 'transactions')
 
   function handleAdd(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const cents = parseAmountToCents(opening || '0')
     if (cents === null) {
-      toast('That opening balance is not an amount.')
+      toast(`That ${addingDebt ? 'amount owed' : 'opening balance'} is not an amount.`)
       return
     }
     const valuation = manual && MANUAL_TYPES.has(type) ? 'manual' : 'transactions'
-    const debt = DEBT_TYPES.has(type) && valuation === 'transactions'
+    const debt = tracksOwed(type, valuation)
     const aprBps = debt ? parseApr(apr) : null
     if (aprBps === undefined) {
       toast('Type the APR as a percent, e.g. 19.99.')
@@ -126,7 +127,8 @@ export function AccountsPage() {
     add.mutate({
       name,
       type,
-      opening_balance_cents: cents,
+      // A debt's field is "Amount owed": owed money is stored negative (sign convention).
+      opening_balance_cents: debt ? owedToBalance(cents) : cents,
       valuation_mode: valuation,
       ...(debt ? { apr_bps: aprBps, min_payment_cents: minCents } : {}),
     })
@@ -190,16 +192,20 @@ export function AccountsPage() {
                     Update value
                   </button>
                 )}
-                <div className="shrink-0 text-right">
-                  <div
-                    className={`text-sm tabular-nums ${(balanceOf(account.id) ?? 0) < 0 ? 'text-rose-600' : ''}`}
+                <BalanceCell account={account} balance={balanceOf(account.id)} />
+                {!account.is_closed && account.valuation_mode === 'transactions' && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditingOpening(editingOpening === account.id ? null : account.id)
+                    }
+                    aria-expanded={editingOpening === account.id}
+                    aria-label={`Edit opening balance for ${account.name}`}
+                    className="shrink-0 rounded px-2 py-1 text-xs text-slate-600 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-sky-500 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
-                    {formatCents(balanceOf(account.id) ?? account.opening_balance_cents)}
-                  </div>
-                  <div className="text-xs text-slate-400">
-                    {balanceOf(account.id) === undefined ? 'opening' : 'balance'}
-                  </div>
-                </div>
+                    Edit opening
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() =>
@@ -212,6 +218,9 @@ export function AccountsPage() {
               </div>
               {valuing === account.id && (
                 <ValuationPanel account={account} onClose={() => setValuing(null)} />
+              )}
+              {editingOpening === account.id && (
+                <OpeningPanel account={account} onClose={() => setEditingOpening(null)} />
               )}
             </li>
           ))}
@@ -242,8 +251,8 @@ export function AccountsPage() {
             ))}
           </select>
           <input
-            aria-label="Opening balance"
-            placeholder="Opening balance"
+            aria-label={addingDebt ? 'Amount owed' : 'Opening balance'}
+            placeholder={addingDebt ? 'Amount owed' : 'Opening balance'}
             inputMode="decimal"
             value={opening}
             onChange={(event) => setOpening(event.target.value)}
@@ -260,7 +269,7 @@ export function AccountsPage() {
             I will type its value in by hand (a house, a car, a brokerage account)
           </label>
         )}
-        {DEBT_TYPES.has(type) && !(manual && MANUAL_TYPES.has(type)) && (
+        {addingDebt && (
           <div className="mt-2 grid gap-2 sm:grid-cols-3">
             <input
               aria-label="APR"
@@ -292,5 +301,28 @@ export function AccountsPage() {
         </button>
       </form>
     </section>
+  )
+}
+
+/** The balance column: signed for most accounts, "owed" (or "in credit") for a debt. */
+function BalanceCell({ account, balance }: { account: Account; balance: number | undefined }) {
+  const cents = balance ?? account.opening_balance_cents
+  const caption = balance === undefined ? 'opening' : 'balance'
+  if (tracksOwed(account.type, account.valuation_mode)) {
+    const owed = describeOwed(cents)
+    return (
+      <div className="shrink-0 text-right">
+        <div className="text-sm tabular-nums">{formatCents(owed.cents)}</div>
+        <div className="text-xs text-slate-500">{owed.label}</div>
+      </div>
+    )
+  }
+  return (
+    <div className="shrink-0 text-right">
+      <div className={`text-sm tabular-nums ${cents < 0 ? 'text-rose-600' : ''}`}>
+        {formatCents(cents)}
+      </div>
+      <div className="text-xs text-slate-500">{caption}</div>
+    </div>
   )
 }

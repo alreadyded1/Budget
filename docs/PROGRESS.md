@@ -36,6 +36,20 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Next step:**
 -->
 
+### 2026-09-25 — Repair: debts are entered and shown as amounts owed
+- **Done** (D-116):
+  - "Add account" labels the field **Amount owed** for a credit card, loan, mortgage or other
+    liability valued by its transactions, and saves it as money owed whatever sign is typed.
+  - The Accounts page shows those debts as "$X owed" (or "$X in credit" when overpaid) instead of a
+    red negative number. Other accounts are unchanged.
+  - New **Edit opening** on each transaction-valued account: correct the opening balance (a debt's as
+    the amount owed) and opening date. Enter saves, Esc closes; every balance, net worth and the debt
+    plan refresh. This fixes a debt that was entered with the wrong sign.
+- **Tests:** 207 frontend (+5), 547 backend, 15 E2E.
+- **Known issues:** a debt that started in credit can't be entered as such on the add form (it would be
+  saved as owed); fix it with a transaction, or it's rare enough to leave.
+- **Next step:** none planned.
+
 ### 2026-09-25 — Repair: the date picker that stayed open (Safari on macOS)
 - **Done:** every date field's ▾ now opens the app's own calendar instead of the browser's native
   picker (D-115). Picking a day (or Today) fills the field and closes it; ✓ Done, Esc, a click or Tab
