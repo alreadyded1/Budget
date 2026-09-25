@@ -3,8 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="Household budgeting by pay period." />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Payday Budget</title>
+    <script>
+      // Set the theme before the first paint (src/lib/theme.ts has the same rules).
+      ;(function () {
+        var pick = function (v) {
+          return v === 'light' || v === 'dark' || v === 'system' ? v : null
+        }
+        var choice = 'system'
+        try {
+          choice =
+            pick(localStorage.getItem('pb.theme')) ||
+            pick(localStorage.getItem('pb.theme.household')) ||
+            'system'
+        } catch (e) {}
+        var dark =
+          choice === 'dark' ||
+          (choice === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.toggle('dark', dark)
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+      })()
+    </script>
   </head>
   <body class="h-full">
     <div id="root" class="h-full"></div>

@@ -403,6 +403,55 @@ def update_row(db: DbSession, batch_id: int, row_id: int, changes: dict) -> Impo
     return row
 
 
+def apply_rules(db: DbSession, batch_id: int) -> tuple[ImportBatch, int]:
+    """Run the rules again over rows nobody has filled in yet (a rule made during review).
+
+    Only rows still to be imported with no payee, new payee, category or memo are touched,
+    so nothing the household typed is overwritten. Returns the batch and how many changed.
+    """
+    batch = get_batch(db, batch_id)
+    if batch.status != "staged":
+        raise AppError(409, "This import is already committed.", "import_not_staged")
+    specs, by_id = rules_service.active_specs(db)
+    taken_bills = {r.bill_occurrence_id for r in batch.rows if r.bill_occurrence_id is not None}
+    changed = 0
+    for row in batch.rows:
+        untouched = (
+            row.disposition == "import"
+            and row.payee_id is None
+            and not row.new_payee_name
+            and row.category_id is None
+            and not row.memo
+        )
+        if not untouched:
+            continue
+        rule = rule_math.first_match(
+            specs,
+            description=row.raw_description,
+            memo=row.raw_memo,
+            amount_cents=row.amount_cents,
+            account_id=batch.account_id,
+        )
+        if rule is None:
+            continue
+        source = by_id[rule.id]
+        row.applied_rule_id = source.id
+        row.payee_id = source.set_payee_id
+        row.category_id = source.set_category_id
+        row.memo = source.set_memo
+        if row.bill_occurrence_id is None and row.payee_id is not None:
+            parsed = ParsedRow(row.date, row.amount_cents, row.raw_description, row.raw_memo)
+            bill = _bill_for(db, row.payee_id, parsed, taken_bills)
+            if bill is not None:
+                taken_bills.add(bill.id)
+                row.bill_occurrence_id = bill.id
+                row.link_bill = True
+        changed += 1
+    db.commit()
+    db.refresh(batch)
+    return batch, changed
+
+
 def discard(db: DbSession, batch_id: int) -> None:
     batch = get_batch(db, batch_id)
     if batch.status != "staged":

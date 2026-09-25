@@ -12,6 +12,7 @@ from app.api.v1 import (
     auth,
     budget,
     categories,
+    export,
     goals,
     health,
     imports,
@@ -48,6 +49,7 @@ protected.include_router(reports.router)
 protected.include_router(goals.router)
 protected.include_router(net_worth.router)
 protected.include_router(attachments.router)
+protected.include_router(export.router)
 protected.include_router(budget.router)
 protected.include_router(subscriptions.router)
 protected.include_router(notifications.router)

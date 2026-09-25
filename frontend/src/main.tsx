@@ -33,3 +33,10 @@ createRoot(document.getElementById('root')!).render(
     </QueryClientProvider>
   </StrictMode>,
 )
+
+// Installable as an app (SPEC §18). Production builds only; the worker caches nothing (D-105).
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js').catch(() => {})
+  })
+}

@@ -6,6 +6,7 @@ import type { Account } from '../../api/accounts'
 import type { Payee } from '../../api/payees'
 import type { LedgerRow } from '../../api/transactions'
 import { formatCents } from '../../lib/money'
+import { useNarrow } from '../../components/useNarrow'
 import { gridTemplate } from './columns'
 import { TRANSFER_PREFIX } from './draft'
 
@@ -30,6 +31,8 @@ type Props = {
 }
 
 const ROW_HEIGHT = 34
+/** Two-line card rows on a phone, tall enough to tap (D-104). */
+const CARD_HEIGHT = 60
 
 /** The ledger rows, virtualized so thousands scroll smoothly (SPEC §7).
  *
@@ -54,6 +57,8 @@ export function LedgerTable({
   header,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const narrow = useNarrow()
+  const rowHeight = narrow ? CARD_HEIGHT : ROW_HEIGHT
   const count = rows.length + (hasMore ? 1 : 0)
 
   // The virtualizer hands back fresh functions each render; this component is not memoized.
@@ -61,7 +66,7 @@ export function LedgerTable({
   const virtualizer = useVirtualizer({
     count,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight,
     overscan: 12,
     getItemKey: (index) => rows[index]?.transaction.id ?? 'more',
   })
@@ -86,30 +91,54 @@ export function LedgerTable({
   const template = gridTemplate(showAccount)
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col rounded border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+    <div
+      role="grid"
+      aria-label="Transactions"
+      className="flex min-h-0 flex-1 flex-col rounded border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+    >
       <div
-        className="grid gap-1.5 border-b border-slate-200 px-2 py-1.5 text-xs font-medium tracking-wide text-slate-500 uppercase dark:border-slate-800"
+        className="hidden gap-1.5 border-b border-slate-200 px-2 py-1.5 text-xs font-medium tracking-wide text-slate-500 uppercase sm:grid dark:border-slate-800"
         style={{ gridTemplateColumns: template }}
         role="row"
       >
-        {showAccount && <div>Account</div>}
-        <div>Date</div>
-        <div>Payee</div>
-        <div>Category</div>
-        <div>Memo</div>
-        <div className="text-right">Outflow</div>
-        <div className="text-right">Inflow</div>
-        <div className="text-center" title="Cleared">
+        {showAccount && <div role="columnheader">Account</div>}
+        <div role="columnheader">Date</div>
+        <div role="columnheader">Payee</div>
+        <div role="columnheader">Category</div>
+        <div role="columnheader">Memo</div>
+        <div role="columnheader" className="text-right">
+          Outflow
+        </div>
+        <div role="columnheader" className="text-right">
+          Inflow
+        </div>
+        <div role="columnheader" className="text-center" title="Cleared">
           C
         </div>
-        <div className="text-right">Balance</div>
+        <div role="columnheader" className="text-right">
+          Balance
+        </div>
       </div>
-      {header}
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto" data-testid="ledger-rows">
+      {header && (
+        <div role="row">
+          <div role="gridcell">{header}</div>
+        </div>
+      )}
+      <div
+        ref={scrollRef}
+        role="rowgroup"
+        // Reachable by keyboard so the list scrolls with the arrow and page keys too.
+        tabIndex={0}
+        aria-label="Transactions list"
+        className="min-h-0 flex-1 overflow-auto outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-inset"
+        data-testid="ledger-rows"
+      >
         {rows.length === 0 && !hasMore && (
-          <p className="p-6 text-center text-sm text-slate-500">
-            No transactions yet. Type one into the row above and press Enter.
-          </p>
+          <div role="row">
+            <p role="gridcell" className="p-6 text-center text-sm text-slate-500">
+              No transactions yet. Type one into the row above and press Enter.
+            </p>
+          </div>
         )}
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
           {items.map((item) => {
@@ -129,7 +158,11 @@ export function LedgerTable({
                   data-index={item.index}
                   style={style}
                 >
-                  <p className="p-2 text-center text-xs text-slate-400">Loading more…</p>
+                  <div role="row">
+                    <p role="gridcell" className="p-2 text-center text-xs text-slate-400">
+                      Loading more…
+                    </p>
+                  </div>
                 </div>
               )
             }
@@ -142,7 +175,9 @@ export function LedgerTable({
                   data-index={item.index}
                   style={style}
                 >
-                  {renderEditor()}
+                  <div role="row">
+                    <div role="gridcell">{renderEditor()}</div>
+                  </div>
                 </div>
               )
             }
@@ -159,6 +194,85 @@ export function LedgerTable({
             else if (tx.transfer_id !== null) category = ''
             else category = <span className="text-amber-600">Uncategorized</span>
 
+            if (narrow) {
+              return (
+                <div
+                  key={item.key}
+                  ref={virtualizer.measureElement}
+                  data-index={item.index}
+                  style={style}
+                >
+                  <div
+                    role="row"
+                    aria-selected={selected}
+                    data-testid="ledger-row"
+                    data-id={tx.id}
+                    // A tap selects; a second tap on the selected row edits it.
+                    onClick={() => (selected ? onOpen(tx.id) : onSelect(tx.id))}
+                    className={[
+                      'flex flex-col justify-center gap-0.5 border-b border-slate-100 px-3 text-sm dark:border-slate-800/70',
+                      selected ? 'bg-sky-100 dark:bg-sky-900/50' : '',
+                      pending ? 'opacity-60' : '',
+                    ].join(' ')}
+                    style={{ height: CARD_HEIGHT }}
+                  >
+                    <div role="gridcell" className="flex items-baseline justify-between gap-3">
+                      <span className="truncate font-medium">{payee || '—'}</span>
+                      <span
+                        className={`shrink-0 tabular-nums ${tx.amount_cents > 0 ? 'text-emerald-700 dark:text-emerald-400' : ''}`}
+                      >
+                        {formatCents(tx.amount_cents)}
+                      </span>
+                    </div>
+                    <div
+                      role="gridcell"
+                      className="flex items-center justify-between gap-3 text-xs text-slate-500"
+                    >
+                      <span className="truncate">
+                        {tx.date}
+                        {category ? <> · {category}</> : null}
+                        {tx.memo ? ` · ${tx.memo}` : ''}
+                        {showAccount ? ` · ${accountName(tx.account_id)}` : ''}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        {(tx.attachment_count ?? 0) > 0 && (
+                          <button
+                            type="button"
+                            aria-label={`${tx.attachment_count} receipt${tx.attachment_count === 1 ? '' : 's'}`}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              onReceipts?.(tx.id)
+                            }}
+                            className="rounded p-1.5"
+                          >
+                            <PaperclipIcon />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          aria-label={`Status: ${tx.status}`}
+                          disabled={pending}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            onToggleCleared(tx.id)
+                          }}
+                          className={[
+                            'flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold',
+                            tx.status === 'uncleared'
+                              ? 'border border-slate-300 text-slate-400 dark:border-slate-600'
+                              : tx.status === 'cleared'
+                                ? 'bg-emerald-700 text-white'
+                                : 'text-slate-500 dark:text-slate-400',
+                          ].join(' ')}
+                        >
+                          {tx.status === 'reconciled' ? <LockIcon /> : 'C'}
+                        </button>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
             return (
               <div
                 key={item.key}
@@ -183,12 +297,20 @@ export function LedgerTable({
                   style={{ gridTemplateColumns: template, height: ROW_HEIGHT }}
                 >
                   {showAccount && (
-                    <div className="truncate text-slate-500">{accountName(tx.account_id)}</div>
+                    <div role="gridcell" className="truncate text-slate-500">
+                      {accountName(tx.account_id)}
+                    </div>
                   )}
-                  <div className="tabular-nums">{tx.date}</div>
-                  <div className="truncate">{payee}</div>
-                  <div className="truncate">{category}</div>
-                  <div className="flex min-w-0 items-center gap-1 text-slate-500">
+                  <div role="gridcell" className="tabular-nums">
+                    {tx.date}
+                  </div>
+                  <div role="gridcell" className="truncate">
+                    {payee}
+                  </div>
+                  <div role="gridcell" className="truncate">
+                    {category}
+                  </div>
+                  <div role="gridcell" className="flex min-w-0 items-center gap-1 text-slate-500">
                     <span className="truncate">{tx.memo}</span>
                     {((tx.attachment_count ?? 0) > 0 || (selected && tx.id > 0)) && (
                       <button
@@ -211,13 +333,16 @@ export function LedgerTable({
                       </button>
                     )}
                   </div>
-                  <div className="text-right tabular-nums">
+                  <div role="gridcell" className="text-right tabular-nums">
                     {tx.amount_cents < 0 ? formatCents(-tx.amount_cents) : ''}
                   </div>
-                  <div className="text-right tabular-nums text-emerald-700 dark:text-emerald-400">
+                  <div
+                    role="gridcell"
+                    className="text-right tabular-nums text-emerald-700 dark:text-emerald-400"
+                  >
                     {tx.amount_cents > 0 ? formatCents(tx.amount_cents) : ''}
                   </div>
-                  <div className="text-center">
+                  <div role="gridcell" className="text-center">
                     <button
                       type="button"
                       tabIndex={-1}
@@ -237,7 +362,7 @@ export function LedgerTable({
                         tx.status === 'uncleared'
                           ? 'border border-slate-300 text-slate-300 dark:border-slate-600'
                           : tx.status === 'cleared'
-                            ? 'bg-emerald-500 text-white'
+                            ? 'bg-emerald-700 text-white'
                             : 'inline-flex items-center justify-center text-slate-500 dark:text-slate-400',
                       ].join(' ')}
                     >
@@ -245,6 +370,7 @@ export function LedgerTable({
                     </button>
                   </div>
                   <div
+                    role="gridcell"
                     className={`text-right tabular-nums ${
                       (row.running_balance_cents ?? 0) < 0 ? 'text-rose-600' : ''
                     }`}

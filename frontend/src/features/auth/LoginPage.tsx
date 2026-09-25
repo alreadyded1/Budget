@@ -107,7 +107,7 @@ export function LoginPage() {
           {mutation.isPending ? 'Signing in…' : 'Sign in'}
         </button>
 
-        <p className="mt-4 text-xs text-slate-400">
+        <p className="mt-4 text-xs text-slate-500">
           No account yet? Create the first one on the server with{' '}
           <code className="rounded bg-slate-100 px-1 py-0.5 dark:bg-slate-800">pb create-user</code>
           .

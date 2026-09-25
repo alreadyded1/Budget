@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { FormEvent } from 'react'
 
 import { ApiRequestError } from '../../api/client'
@@ -123,6 +124,13 @@ export function GeneralSettingsPage() {
       >
         Save changes
       </button>
+
+      <p className="mt-8 text-sm text-slate-600 dark:text-slate-300">
+        <Link to="/setup" className="text-sky-700 underline dark:text-sky-300">
+          Run setup again
+        </Link>{' '}
+        — pay schedule, accounts and categories, one step at a time.
+      </p>
     </form>
   )
 }

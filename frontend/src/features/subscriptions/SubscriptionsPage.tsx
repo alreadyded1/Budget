@@ -181,7 +181,10 @@ export function SubscriptionsPage() {
   const data = list.data
 
   const header = (key: SortKey, label: string, right = false) => (
-    <th className={`px-2 py-1.5 font-medium ${right ? 'text-right' : 'text-left'}`}>
+    <th
+      className={`px-2 py-1.5 font-medium ${right ? 'text-right' : 'text-left'}`}
+      aria-sort={sort.key === key ? (sort.descending ? 'descending' : 'ascending') : undefined}
+    >
       <button
         type="button"
         onClick={() =>
@@ -191,7 +194,6 @@ export function SubscriptionsPage() {
           }))
         }
         className="rounded uppercase outline-none hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-sky-500 dark:hover:text-slate-100"
-        aria-sort={sort.key === key ? (sort.descending ? 'descending' : 'ascending') : undefined}
       >
         {label}
         {sort.key === key ? (sort.descending ? ' ↓' : ' ↑') : ''}
@@ -216,7 +218,7 @@ export function SubscriptionsPage() {
             <button
               type="button"
               onClick={() => setEditing('new')}
-              className="rounded bg-sky-600 px-3 py-1.5 text-sm font-medium text-white outline-none hover:bg-sky-700 focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="rounded bg-sky-700 px-3 py-1.5 text-sm font-medium text-white outline-none hover:bg-sky-800 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               Add subscription
             </button>

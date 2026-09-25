@@ -299,7 +299,12 @@ const NAV_BUTTON =
 
 function PeriodLink({ to, label, title }: { to: number | null; label: string; title: string }) {
   if (to === null) {
-    return <span className={`${NAV_BUTTON} cursor-not-allowed opacity-40`}>{label}</span>
+    // Dimmed by colour, not opacity, so the text still meets contrast (D-108).
+    return (
+      <span aria-disabled="true" className={`${NAV_BUTTON} cursor-not-allowed text-slate-400`}>
+        {label}
+      </span>
+    )
   }
   return (
     <Link to={`/budget/${to}`} className={NAV_BUTTON} title={title}>
@@ -351,8 +356,9 @@ function Tile({
   )
 }
 
+/** Three columns on a phone (name, planned, remaining), all five from `sm` up (D-104). */
 const GRID =
-  'grid grid-cols-[minmax(10rem,1fr)_8rem_7rem_7rem_minmax(6rem,10rem)] items-center gap-3'
+  'grid grid-cols-[minmax(0,1fr)_6.5rem_6rem] items-center gap-2 sm:grid-cols-[minmax(10rem,1fr)_8rem_7rem_7rem_minmax(6rem,10rem)] sm:gap-3'
 
 function Section({
   title,
@@ -367,7 +373,19 @@ function Section({
   onCommit: (line: PlanLine, cents: number) => void
   nextIndex: () => number
 }) {
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => readCollapsed())
   if (groups.length === 0) return null
+
+  function toggle(id: number) {
+    setCollapsed((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      writeCollapsed(next)
+      return next
+    })
+  }
+
   return (
     <section className="mt-6" aria-label={title}>
       <div
@@ -375,9 +393,9 @@ function Section({
       >
         <div>{title}</div>
         <div className="pr-1.5 text-right">Planned</div>
-        <div className="text-right">{actualLabel}</div>
+        <div className="text-right max-sm:hidden">{actualLabel}</div>
         <div className="text-right">Remaining</div>
-        <div />
+        <div className="max-sm:hidden" />
       </div>
       {groups.map((group) => (
         <div key={group.id} className="border-b border-slate-100 dark:border-slate-800/70">
@@ -385,19 +403,40 @@ function Section({
             className={`${GRID} bg-slate-100/70 px-2 py-1 text-sm font-medium dark:bg-slate-800/40`}
             data-testid={`group-${group.name}`}
           >
-            <div>{group.name}</div>
+            <div className="flex min-w-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => toggle(group.id)}
+                aria-expanded={!collapsed.has(group.id)}
+                aria-controls={`group-lines-${group.id}`}
+                className="flex min-w-0 items-center gap-1 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              >
+                <span aria-hidden="true" className="w-3 text-xs text-slate-400">
+                  {collapsed.has(group.id) ? '▸' : '▾'}
+                </span>
+                <span className="truncate">{group.name}</span>
+              </button>
+              {collapsed.has(group.id) && group.lines.some((line) => line.overspent) && (
+                <span className="text-xs font-normal text-rose-600">overspent inside</span>
+              )}
+            </div>
             <div className="pr-1.5 text-right tabular-nums">{formatCents(group.planned_cents)}</div>
-            <div className="text-right tabular-nums">{formatCents(group.actual_cents)}</div>
+            <div className="text-right tabular-nums max-sm:hidden">
+              {formatCents(group.actual_cents)}
+            </div>
             <div
               className={`text-right tabular-nums ${group.kind === 'expense' && group.remaining_cents < 0 ? 'text-rose-600' : ''}`}
             >
               {formatCents(group.remaining_cents)}
             </div>
-            <div />
+            <div className="max-sm:hidden" />
           </div>
-          {group.lines.map((line) => (
-            <Row key={line.category_id} line={line} index={nextIndex()} onCommit={onCommit} />
-          ))}
+          <div id={`group-lines-${group.id}`} hidden={collapsed.has(group.id)}>
+            {!collapsed.has(group.id) &&
+              group.lines.map((line) => (
+                <Row key={line.category_id} line={line} index={nextIndex()} onCommit={onCommit} />
+              ))}
+          </div>
         </div>
       ))}
     </section>
@@ -428,34 +467,39 @@ function Row({
       data-testid={`line-${line.name}`}
       data-overspent={line.overspent}
     >
-      <div className="truncate pl-3">
-        {line.name}
-        {line.fund_balance_cents !== null && line.fund_balance_cents !== undefined ? (
-          <span
-            className={`ml-1.5 text-xs ${line.fund_balance_cents < 0 ? 'font-medium text-rose-600' : 'text-slate-500'}`}
-            title="Sinking fund balance through this period"
-            data-testid={`fund-${line.name}`}
-          >
-            Fund {formatCents(line.fund_balance_cents)}
-          </span>
-        ) : (
-          line.is_sinking_fund && (
-            <span className="ml-1.5 text-xs text-slate-400">sinking fund</span>
-          )
-        )}
-        {line.is_hidden && <span className="ml-1.5 text-xs text-slate-400">hidden</span>}
-        {line.committed_cents > 0 && (
-          <span
-            className="ml-1.5 text-xs text-slate-400"
-            title="Bills due this period from Subscriptions"
-            data-testid={`committed-${line.name}`}
-          >
-            {formatCents(line.committed_cents)} in bills
-          </span>
-        )}
+      <div className="min-w-0 pl-3">
+        <div className="truncate">
+          {line.name}
+          {line.fund_balance_cents !== null && line.fund_balance_cents !== undefined ? (
+            <span
+              className={`ml-1.5 text-xs ${line.fund_balance_cents < 0 ? 'font-medium text-rose-600' : 'text-slate-500'}`}
+              title="Sinking fund balance through this period"
+              data-testid={`fund-${line.name}`}
+            >
+              Fund {formatCents(line.fund_balance_cents)}
+            </span>
+          ) : (
+            line.is_sinking_fund && (
+              <span className="ml-1.5 text-xs text-slate-500">sinking fund</span>
+            )
+          )}
+          {line.is_hidden && <span className="ml-1.5 text-xs text-slate-500">hidden</span>}
+          {line.committed_cents > 0 && (
+            <span
+              className="ml-1.5 text-xs text-slate-500"
+              title="Bills due this period from Subscriptions"
+              data-testid={`committed-${line.name}`}
+            >
+              {formatCents(line.committed_cents)} in bills
+            </span>
+          )}
+        </div>
+        <div className="text-xs text-slate-500 tabular-nums sm:hidden">
+          {line.kind === 'income' ? 'Received' : 'Spent'} {formatCents(line.actual_cents)}
+        </div>
       </div>
       <PlannedInput line={line} index={index} onCommit={onCommit} />
-      <div className="text-right tabular-nums">{formatCents(line.actual_cents)}</div>
+      <div className="text-right tabular-nums max-sm:hidden">{formatCents(line.actual_cents)}</div>
       <div
         className={`text-right tabular-nums ${line.overspent ? 'font-medium text-rose-600' : ''}`}
         data-testid={`remaining-${line.name}`}
@@ -463,7 +507,7 @@ function Row({
         {formatCents(line.remaining_cents)}
       </div>
       <div
-        className="h-2 overflow-hidden rounded bg-slate-200 dark:bg-slate-800"
+        className="h-2 overflow-hidden rounded bg-slate-200 max-sm:hidden dark:bg-slate-800"
         role="progressbar"
         aria-label={`${line.name} progress`}
         aria-valuemin={0}
@@ -551,4 +595,25 @@ function PlannedInput({
       />
     </div>
   )
+}
+
+/** Folded planner groups, remembered per browser (a convenience, D-104). */
+const COLLAPSED_KEY = 'pb.planner.collapsed'
+
+function readCollapsed(): Set<number> {
+  try {
+    const raw = window.localStorage.getItem(COLLAPSED_KEY)
+    const ids = raw ? (JSON.parse(raw) as unknown) : []
+    return new Set(Array.isArray(ids) ? ids.filter((id) => Number.isInteger(id)) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function writeCollapsed(ids: Set<number>): void {
+  try {
+    window.localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...ids]))
+  } catch {
+    // Private windows: groups just open again next time.
+  }
 }

@@ -1,6 +1,10 @@
 /** One grid for the header, the entry row, and every ledger row, so columns line up. */
 
-export function gridTemplate(showAccount: boolean): string {
+/** On a phone the entry row's fields wrap two to a line (D-104). */
+export const NARROW_TEMPLATE = 'repeat(2, minmax(0, 1fr))'
+
+export function gridTemplate(showAccount: boolean, narrow = false): string {
+  if (narrow) return NARROW_TEMPLATE
   const columns = [
     '7.5rem', // date
     'minmax(9rem, 1.4fr)', // payee
