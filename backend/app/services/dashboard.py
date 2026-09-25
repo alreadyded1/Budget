@@ -85,7 +85,7 @@ def build(db: DbSession, today: date) -> Dashboard:
         today=today,
         budget=view,
         overspent=most_overspent(view) if view else [],
-        balances=[balances_service.balances_for(db, account) for account in accounts],
+        balances=list(balances_service.balances_for_many(db, accounts).values()),
         recent=[row.transaction for row in recent.rows],
         upcoming_bills=upcoming,
     )

@@ -18,8 +18,8 @@ from app.services import payees as service
 router = APIRouter(prefix="/payees", tags=["payees"])
 
 
-def _payee_out(db: DbSession, payee: Payee) -> PayeeOut:
-    usage = service.usage_for(db, payee.id)
+def _payee_out(db: DbSession, payee: Payee, usage: service.PayeeUsage | None = None) -> PayeeOut:
+    usage = usage or service.usage_for(db, payee.id)
     return PayeeOut(
         id=payee.id,
         name=payee.name,
@@ -41,7 +41,10 @@ def list_payees(
     include_hidden: bool = Query(default=True),
 ) -> PayeeListOut:
     rows = service.list_payees(db, search=search, include_hidden=include_hidden)
-    return PayeeListOut(items=[_payee_out(db, row) for row in rows])
+    usage = service.usage_for_many(db, [row.id for row in rows])
+    return PayeeListOut(
+        items=[_payee_out(db, row, usage.get(row.id, service.PayeeUsage())) for row in rows]
+    )
 
 
 @router.post("", response_model=PayeeOut, status_code=201)

@@ -34,15 +34,20 @@ _usage_provider = None
 
 
 def set_usage_provider(provider) -> None:
-    """Later phases plug the real stats in here."""
+    """Later phases plug the real stats in here: `provider(db, payee_ids) -> {id: usage}`."""
     global _usage_provider
     _usage_provider = provider
 
 
+def usage_for_many(db: DbSession, payee_ids: list[int]) -> dict[int, PayeeUsage]:
+    """Usage for many payees in a few grouped queries, not a few per payee (D-111)."""
+    if _usage_provider is None or not payee_ids:
+        return {}
+    return _usage_provider(db, payee_ids)
+
+
 def usage_for(db: DbSession, payee_id: int) -> PayeeUsage:
-    if _usage_provider is None:
-        return PayeeUsage()
-    return _usage_provider(db, payee_id)
+    return usage_for_many(db, [payee_id]).get(payee_id, PayeeUsage())
 
 
 def list_payees(db: DbSession, *, search: str = "", include_hidden: bool = True) -> list[Payee]:

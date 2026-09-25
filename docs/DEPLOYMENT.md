@@ -114,6 +114,12 @@ Running it a second time is safe.
 5. `alembic upgrade head`. **If this fails, stop and leave the old version running.**
 6. Restart the service and run the health check. Print the version.
 
+## Demo data (`pb seed-demo`)
+For trying things out or measuring performance only. It fills an **empty** database with a heavy demo
+household (about 100k transactions over five years) and a `demo` login, and refuses to touch a database
+that has accounts. Point it at a scratch file, never at the live one:
+`PB_DATA_DIR=/tmp/pb-demo uv run alembic upgrade head && PB_DATA_DIR=/tmp/pb-demo uv run pb seed-demo`.
+
 ## Restore (`restore.sh <backup-file> [receipts-tarball]`)
 0. Check the backup's integrity (and that the archive is safe to unpack) before touching anything.
 1. Stop the service.

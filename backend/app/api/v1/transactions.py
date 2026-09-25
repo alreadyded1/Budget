@@ -231,11 +231,8 @@ def bulk_delete(
 @router.get("/balances", response_model=BalanceListOut)
 def list_balances(db: DbSession = Depends(get_db)) -> BalanceListOut:
     rows = accounts_service.list_accounts(db)
-    return BalanceListOut(
-        items=[
-            BalanceOut(**balances_service.balances_for(db, account).as_dict()) for account in rows
-        ]
-    )
+    balances = balances_service.balances_for_many(db, rows)
+    return BalanceListOut(items=[BalanceOut(**balances[a.id].as_dict()) for a in rows])
 
 
 @router.get("/accounts/{account_id}/balance", response_model=BalanceOut)

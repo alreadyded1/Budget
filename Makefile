@@ -1,6 +1,6 @@
 # Payday Budget — native tooling only. No containers anywhere in this repo.
 .DEFAULT_GOAL := help
-.PHONY: help dev dev-backend dev-frontend test test-backend test-frontend e2e lint lint-backend \
+.PHONY: help dev dev-backend dev-frontend test test-backend test-frontend e2e perf lint lint-backend \
         lint-frontend fmt migrate build install clean
 
 BACKEND  := backend
@@ -39,6 +39,9 @@ test-frontend:
 
 e2e: ## Playwright keyboard E2E against a throwaway server on :8765 (builds the SPA)
 	$(NPM) run e2e
+
+perf: ## Timings against a 100k-transaction demo database on :8766 (builds the SPA; slow)
+	$(UV) run python perf/run.py
 
 lint: lint-backend lint-frontend ## ruff + eslint + tsc --noEmit
 

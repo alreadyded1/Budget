@@ -2,7 +2,7 @@
 
 Balances are signed from each account's side, so liabilities are already negative and net
 worth is a plain sum. Manual-valuation accounts use their latest typed balance on or before
-each date (balances.balance_as_of). The current total counts open accounts; the history
+each date (balances.balances_as_of_many). The current total counts open accounts; the history
 counts each account from its opening date through the day it was closed.
 """
 
@@ -61,17 +61,22 @@ def _all_accounts(db: DbSession) -> list[Account]:
     return list(db.scalars(select(Account).order_by(Account.sort_order, Account.id)))
 
 
-def point(db: DbSession, accounts: list[Account], on: date) -> Point:
-    assets = liabilities = 0
-    for account in accounts:
-        if not math.counts_on(account.opening_date, account.closed_on, on):
-            continue
-        balance = balances_service.balance_as_of(db, account, on)
-        if account.is_liability:
-            liabilities += balance
-        else:
-            assets += balance
-    return Point(on, assets, liabilities)
+def history(db: DbSession, accounts: list[Account], dates: list[date]) -> list[Point]:
+    """Assets and liabilities at each date, from one grouped balance query (D-111)."""
+    balances = balances_service.balances_as_of_many(db, accounts, dates)
+    points = []
+    for index, on in enumerate(sorted(dates)):
+        assets = liabilities = 0
+        for account in accounts:
+            if not math.counts_on(account.opening_date, account.closed_on, on):
+                continue
+            balance = balances[account.id][index]
+            if account.is_liability:
+                liabilities += balance
+            else:
+                assets += balance
+        points.append(Point(on, assets, liabilities))
+    return points
 
 
 def build(db: DbSession, today: date, months: int | None = 24) -> NetWorth:
@@ -81,8 +86,9 @@ def build(db: DbSession, today: date, months: int | None = 24) -> NetWorth:
 
     breakdown: dict[str, TypeTotal] = {}
     assets = liabilities = 0
+    current = balances_service.balances_for_many(db, open_accounts)
     for account in open_accounts:
-        balance = balances_service.balances_for(db, account).current_cents
+        balance = current[account.id].current_cents
         row = breakdown.setdefault(
             account.type,
             TypeTotal(
@@ -103,10 +109,10 @@ def build(db: DbSession, today: date, months: int | None = 24) -> NetWorth:
     if months is None:
         first = min((a.opening_date for a in accounts), default=today)
         months = math.months_since(min(first, today), today)
-    history = [point(db, accounts, on) for on in math.month_ends(today, months)]
+    points = history(db, accounts, math.month_ends(today, months))
     order = list(TYPE_LABEL)
     rows = sorted(
         breakdown.values(),
         key=lambda r: (r.is_liability, order.index(r.type) if r.type in order else 99),
     )
-    return NetWorth(Point(today, assets, liabilities), history, rows)
+    return NetWorth(Point(today, assets, liabilities), points, rows)

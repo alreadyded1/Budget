@@ -44,11 +44,12 @@ Runs natively on a Debian 13 LXC in Proxmox under systemd, behind NGINX Proxy Ma
 - `make dev` — backend with reload on :8000 and Vite dev server on :5173 (proxies `/api`)
 - `make test` — pytest + vitest
 - `make e2e` — Playwright E2E against a throwaway server and database (needs Chromium: `npx playwright install chromium`, or `PB_CHROMIUM_PATH`)
+- `make perf` — seeds a 100k-transaction demo database, times the API and the ledger scroll (slow; Chromium as for e2e)
 - `make lint` — ruff + eslint + `tsc --noEmit`
 - `make fmt` — ruff format + prettier
 - `make migrate` — `alembic upgrade head`
 - `make build` — production frontend build into `frontend/dist`
-- `uv run pb --help` — admin CLI (create-user, run-daily, backup, ...)
+- `uv run pb --help` — admin CLI (create-user, run-daily, backup, seed-demo, ...)
 
 ## Code conventions
 - Backend layers: `app/api/` (thin routers) → `app/services/` (business logic) → `app/models/` (SQLAlchemy),

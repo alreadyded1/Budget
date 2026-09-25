@@ -7,6 +7,7 @@ spending (a refund lowers it), income categories are income, and uncategorized s
 count by their sign. So income − spending is always the ledger's net for the range.
 """
 
+from bisect import bisect_right
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date
@@ -146,19 +147,37 @@ class Flow:
         return budget_math.prorate(self.net_cents * 100, 100, self.income_cents)
 
 
-def _flow_rows(db: DbSession, filters: Filters) -> list[tuple[int | None, int, date]]:
-    """(category_id, amount, date) per split. Uncategorized splits keep their own sign."""
+def _flow_rows(db: DbSession, filters: Filters) -> list[tuple[int | None, int, date, int]]:
+    """(category_id, amount, date, split count), summed per category, day and direction.
+
+    Summing in SQL keeps a five-year report to tens of thousands of rows instead of every
+    split (D-111). Money in and money out stay apart so uncategorized splits keep their sign.
+    """
+    outflow = TransactionSplit.amount_cents < 0
+    query = _split_query(
+        filters,
+        TransactionSplit.category_id,
+        func.sum(TransactionSplit.amount_cents),
+        Transaction.date,
+        func.count(),
+    ).group_by(TransactionSplit.category_id, Transaction.date, outflow)
     return [
-        (category_id, int(amount), day)
-        for category_id, amount, day in db.execute(
-            _split_query(
-                filters,
-                TransactionSplit.category_id,
-                TransactionSplit.amount_cents,
-                Transaction.date,
-            )
-        ).all()
+        (category_id, int(amount), day, int(count))
+        for category_id, amount, day, count in db.execute(query).all()
     ]
+
+
+def _locate(spans: list[tuple[date, date]]):
+    """A lookup from a day to the index of the sorted, non-overlapping span holding it."""
+    starts = [start for start, _end in spans]
+
+    def index_of(day: date) -> int | None:
+        index = bisect_right(starts, day) - 1
+        if index >= 0 and day <= spans[index][1]:
+            return index
+        return None
+
+    return index_of
 
 
 def _add(flow: Flow, info: CategoryInfo | None, amount: int) -> None:
@@ -197,7 +216,7 @@ def spending_by_category(db: DbSession, filters: Filters) -> tuple[list[Category
     """Spending per expense category plus uncategorized outflows, largest first."""
     info = category_info(db)
     totals: dict[int | None, CategoryTotal] = {}
-    for category_id, amount, _day in _flow_rows(db, filters):
+    for category_id, amount, _day, count in _flow_rows(db, filters):
         found = info.get(category_id) if category_id is not None else None
         if found is not None and found.kind == "income":
             continue
@@ -214,7 +233,7 @@ def spending_by_category(db: DbSession, filters: Filters) -> tuple[list[Category
                 total_cents=0,
             )
         row.total_cents += -amount
-        row.count += 1
+        row.count += count
     rows = sorted(totals.values(), key=lambda r: (-r.total_cents, r.name.lower()))
     grand = sum(r.total_cents for r in rows)
     for row in rows:
@@ -297,13 +316,13 @@ def income_vs_expense(db: DbSession, filters: Filters, by: str) -> tuple[list[Bu
         ]
     info = category_info(db)
     total = Flow()
-    for category_id, amount, day in _flow_rows(db, filters):
+    locate = _locate([(bucket.start, bucket.end) for bucket in buckets])
+    for category_id, amount, day, _count in _flow_rows(db, filters):
         found = info.get(category_id) if category_id is not None else None
         _add(total, found, amount)
-        for bucket in buckets:
-            if bucket.start <= day <= bucket.end:
-                _add(bucket.flow, found, amount)
-                break
+        index = locate(day)
+        if index is not None:
+            _add(buckets[index].flow, found, amount)
     return buckets, total
 
 
@@ -387,13 +406,13 @@ def category_trend(
     months = date_ranges.months_between(filters.start, filters.end)
     info = category_info(db)
     series = {category_id: [0] * len(months) for category_id in filters.category_ids}
-    for category_id, amount, day in _flow_rows(db, filters):
+    locate = _locate([(start, end) for start, end in months])
+    for category_id, amount, day, _count in _flow_rows(db, filters):
         if category_id not in series or category_id not in info:
             continue
-        for index, (start, end) in enumerate(months):
-            if start <= day <= end:
-                series[category_id][index] += budget_math.actual_for(info[category_id].kind, amount)
-                break
+        index = locate(day)
+        if index is not None:
+            series[category_id][index] += budget_math.actual_for(info[category_id].kind, amount)
     return months, series
 
 
