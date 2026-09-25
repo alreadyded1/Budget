@@ -1,7 +1,7 @@
 # Progress
 
 **Current phase:** All 16 phases are built. Every "Done when" box in BUILD_PLAN is ticked.
-**Next step:** The repair list below. New repairs go there; bigger ideas in the parking lot.
+**Next step:** None planned. New repairs go in the repair list below; bigger ideas in the parking lot.
 Deploy with `update.sh`.
 
 ## Phase status
@@ -35,6 +35,20 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-25 — Repair: debts are entered and shown as amounts owed
+- **Done** (D-116):
+  - "Add account" labels the field **Amount owed** for a credit card, loan, mortgage or other
+    liability valued by its transactions, and saves it as money owed whatever sign is typed.
+  - The Accounts page shows those debts as "$X owed" (or "$X in credit" when overpaid) instead of a
+    red negative number. Other accounts are unchanged.
+  - New **Edit opening** on each transaction-valued account: correct the opening balance (a debt's as
+    the amount owed) and opening date. Enter saves, Esc closes; every balance, net worth and the debt
+    plan refresh. This fixes a debt that was entered with the wrong sign.
+- **Tests:** 207 frontend (+5), 547 backend, 15 E2E.
+- **Known issues:** a debt that started in credit can't be entered as such on the add form (it would be
+  saved as owed); fix it with a transaction, or it's rare enough to leave.
+- **Next step:** none planned.
 
 ### 2026-09-25 — Repair: the date picker that stayed open (Safari on macOS)
 - **Done:** every date field's ▾ now opens the app's own calendar instead of the browser's native
@@ -701,14 +715,7 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 
 ## Repair list
 <!-- Fixes found while using the finished app. Next session works through these. -->
-1. **A debt's opening balance has to be typed as a negative number, and nothing says so.** The "Add
-   account" form saves the number as typed (sign convention: money owed is negative). A card entered
-   as `2450` reads as the bank owing you: net worth counts it as an asset and the Debt payoff page
-   silently leaves it out (it only lists debts that owe money). Fix: for credit card, loan, mortgage
-   and other liability (valued by transactions), label the field "Amount owed", take a positive number
-   and store it negated (a negative typed there stays negative, i.e. treat the sign as "owed"); show
-   debts as "owed" on the Accounts page. Also give a way to correct an opening balance that was
-   entered with the wrong sign (the API allows editing it; there is no screen for it yet).
+- Empty. Everything reported so far is fixed (see the 2026-09-25 repairs entries).
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->

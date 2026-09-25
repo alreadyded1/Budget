@@ -735,3 +735,10 @@ that popover open after a day is chosen, and a page cannot close it. `DatePicker
 popover in the app (built on the bill calendar's month-grid helpers, no new dependency): it closes on
 pick, Done, Esc and focus leaving, looks the same in every browser, and follows the keyboard rules.
 
+## D-116 Debts are typed and shown as "owed"; storage keeps the sign convention
+Liability balances stay negative in the database and API (CLAUDE.md). Only the Accounts screens
+translate: a debt valued by its transactions takes an "Amount owed" (stored as −|amount|, so a stray
+minus sign can't flip it) and shows its balance as owed or in credit. Ledger rows and running balances
+keep showing signed amounts, as a bank statement does. Opening balance and date can be corrected on
+the Accounts page, since a wrong sign otherwise hides the debt from net worth and the payoff plan.
+
