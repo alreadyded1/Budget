@@ -36,6 +36,19 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Next step:**
 -->
 
+### 2026-09-25 — Repair: the date picker that stayed open (Safari on macOS)
+- **Done:** every date field's ▾ now opens the app's own calendar instead of the browser's native
+  picker (D-115). Picking a day (or Today) fills the field and closes it; ✓ Done, Esc, a click or Tab
+  away, or a second click on ▾ close it too. Keyboard: Alt+↓ in the field opens it; arrows move a
+  day or week, Page Up / Page Down a month (Jan 31 → Feb 28), Home / End the week's ends, Enter picks.
+  Its keys never reach the ledger row, so Enter and Esc inside it don't save or cancel the row.
+  Typed dates and the `t` / `+` / `-` shortcuts are unchanged.
+- **Tests:** 202 frontend (+7 for the calendar), 15 E2E (the ledger search spec picks a date in the
+  entry row, checks the calendar is on top and closes, and runs axe on it), 547 backend.
+- **Known issues:** WebKit (Safari's engine) isn't available in the build environment, so the fix
+  was checked in Chromium and jsdom. It no longer relies on Safari's picker, which was the cause.
+- **Next step:** none planned.
+
 ### 2026-09-25 — Repairs (from using the app)
 - **Done:**
   1. The "Add account" form asks for APR and minimum payment when the type is a debt (credit card,
@@ -688,7 +701,7 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 
 ## Repair list
 <!-- Fixes found while using the finished app. Next session works through these. -->
-- Empty. The first three repairs are done (see the 2026-09-25 repairs entry).
+- Empty. Everything reported so far is fixed (see the 2026-09-25 repairs entries).
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->

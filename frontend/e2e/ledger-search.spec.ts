@@ -2,6 +2,7 @@
  * account of its own, so the other specs' rows never match.
  */
 
+import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import type { APIRequestContext } from '@playwright/test'
 
@@ -108,6 +109,27 @@ test('search, category and status filters narrow the ledger without a page load'
   await page.keyboard.press('Escape')
   await page.keyboard.press('Escape')
   await expect(editor).toHaveCount(0)
+
+  // The date calendar closes once a day is picked (repair list: Safari's stayed open).
+  const entry = page.getByTestId('entry-row')
+  await entry.getByRole('button', { name: 'Open calendar' }).click()
+  const calendar = page.getByRole('dialog', { name: 'Choose a date' })
+  await expect(calendar).toBeVisible()
+  const topmost = await calendar.evaluate((element) => {
+    const box = element.getBoundingClientRect()
+    const top = document.elementFromPoint(box.left + box.width / 2, box.bottom - 12)
+    return top !== null && element.contains(top)
+  })
+  expect(topmost).toBe(true)
+  const axe = await new AxeBuilder({ page }).include('[data-testid="date-picker"]').analyze()
+  const serious = axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
+  expect(serious.map((v) => `${v.id}: ${v.help}`)).toEqual([])
+  const firstDay = calendar.locator('[data-date$="-01"]').first()
+  const picked = (await firstDay.getAttribute('data-date'))!
+  await firstDay.click()
+  await expect(calendar).toHaveCount(0)
+  await expect(entry.getByLabel('Date')).toHaveValue(picked)
+  await expect(entry.getByLabel('Date')).toBeFocused()
 
   expect(documentLoads).toEqual([])
 })

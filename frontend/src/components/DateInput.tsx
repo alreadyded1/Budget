@@ -1,8 +1,9 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { KeyboardEvent, Ref } from 'react'
 
 import { isValidIsoDate, parseDateInput, todayIso } from '../lib/dates'
+import { DatePicker } from './DatePicker'
 
 type Props = {
   value: string
@@ -20,7 +21,8 @@ type Props = {
 /** A date field with typing shortcuts: `t`, `+`, `-`, `15`, `3/15`, full dates (SPEC §7).
  *
  * The text stays what was typed until the field loses focus, then settles into
- * `YYYY-MM-DD`. The calendar button sits outside the tab order so Tab never stops on it.
+ * `YYYY-MM-DD`. The calendar button sits outside the tab order so Tab never stops on it;
+ * Alt+↓ in the field opens the calendar from the keyboard.
  */
 export function DateInput({
   value,
@@ -31,7 +33,8 @@ export function DateInput({
   placeholder = 'YYYY-MM-DD',
   ...rest
 }: Props) {
-  const pickerRef = useRef<HTMLInputElement>(null)
+  const wrapper = useRef<HTMLSpanElement>(null)
+  const [open, setOpen] = useState(false)
   const currentToday = today ?? todayIso()
   const resolved = parseDateInput(value, currentToday)
 
@@ -42,7 +45,17 @@ export function DateInput({
     input.select()
   }
 
+  function closePicker() {
+    setOpen(false)
+    wrapper.current?.querySelector('input')?.focus()
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.altKey && event.key === 'ArrowDown') {
+      event.preventDefault()
+      setOpen(true)
+      return
+    }
     if (event.ctrlKey || event.metaKey || event.altKey) return
     const input = event.currentTarget
     if (event.key === '+' || event.key === '=' || event.key === '-') {
@@ -61,7 +74,7 @@ export function DateInput({
   }
 
   return (
-    <span className="relative flex items-center">
+    <span ref={wrapper} className="relative flex items-center">
       <input
         {...rest}
         ref={inputRef}
@@ -82,30 +95,27 @@ export function DateInput({
         type="button"
         tabIndex={-1}
         aria-label="Open calendar"
+        aria-expanded={open}
         className="absolute right-1 text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-        onClick={() => {
-          const picker = pickerRef.current
-          if (picker === null) return
-          try {
-            picker.showPicker()
-          } catch {
-            picker.focus()
-          }
-        }}
+        // Keep focus where it is, so a second click closes the calendar instead of the
+        // calendar closing on blur and the click opening it again.
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => (open ? closePicker() : setOpen(true))}
       >
         ▾
       </button>
-      <input
-        ref={pickerRef}
-        type="date"
-        tabIndex={-1}
-        aria-hidden="true"
-        className="pointer-events-none absolute right-0 bottom-0 h-0 w-0 opacity-0"
-        value={resolved !== null && isValidIsoDate(resolved) ? resolved : ''}
-        onChange={(event) => {
-          if (event.target.value) onChange(event.target.value)
-        }}
-      />
+      {open && (
+        <DatePicker
+          value={resolved !== null && isValidIsoDate(resolved) ? resolved : null}
+          today={currentToday}
+          onPick={(iso) => {
+            onChange(iso)
+            closePicker()
+          }}
+          onClose={closePicker}
+          onLeave={() => setOpen(false)}
+        />
+      )}
     </span>
   )
 }
