@@ -115,6 +115,49 @@ def seed_categories() -> None:
     )
 
 
+@app.command("seed-demo")
+def seed_demo(
+    transactions: int = typer.Option(100_000, help="Roughly how many transactions to make"),
+    years: int = typer.Option(5, help="How many years of history, ending today"),
+    seed: int = typer.Option(16, help="Random seed; the same seed builds the same data"),
+) -> None:
+    """Fill an EMPTY database with a heavy demo household (for performance work, D-109).
+
+    Point PB_DATABASE_PATH (or PB_DATA_DIR) at a scratch file first; it refuses to run on
+    a database that already has accounts.
+    """
+    import time
+
+    from sqlalchemy.exc import OperationalError
+
+    from app.services.demo import seed_demo as build
+
+    typer.echo(f"Seeding {get_settings().db_path} …")
+    began = time.perf_counter()
+    try:
+        with session_scope() as db:
+            result = build(db, transactions=transactions, years=years, seed=seed)
+    except AppError as exc:
+        typer.secho(exc.detail, fg=typer.colors.RED, err=True)
+        raise typer.Exit(1) from exc
+    except OperationalError as exc:
+        typer.secho(
+            f"The database is not ready ({exc.orig}). Run `alembic upgrade head` first.",
+            fg=typer.colors.RED,
+            err=True,
+        )
+        raise typer.Exit(1) from exc
+    typer.secho(
+        f"Made {result.transactions:,} transactions ({result.splits:,} splits) in "
+        f"{result.accounts} accounts with {result.payees} payees, "
+        f"{result.first_date} to {result.last_date}, {result.periods} pay periods, "
+        f"in {time.perf_counter() - began:.1f}s.",
+        fg=typer.colors.GREEN,
+    )
+    if result.password:
+        typer.echo(f"Sign in as {result.username} / {result.password}")
+
+
 @app.command("list-categories")
 def list_categories() -> None:
     """Show the category groups and their categories."""

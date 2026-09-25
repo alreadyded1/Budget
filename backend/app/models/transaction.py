@@ -33,13 +33,16 @@ class Transaction(TimestampMixin, Base):
         Index("ix_transactions_date", "date"),
         Index("ix_transactions_transfer_id", "transfer_id"),
         Index("ix_transactions_account_import_key", "account_id", "import_key"),
+        # Covering indexes (D-112): balances by status, and each payee's newest entry.
+        Index("ix_transactions_account_status", "account_id", "status", "amount_cents"),
+        Index("ix_transactions_payee_date", "payee_id", "date", "amount_cents"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), index=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
     date: Mapped[date] = mapped_column(Date)
     #: Null for transfers, which use a virtual payee in the UI instead (SPEC §5).
-    payee_id: Mapped[int | None] = mapped_column(ForeignKey("payees.id"), default=None, index=True)
+    payee_id: Mapped[int | None] = mapped_column(ForeignKey("payees.id"), default=None)
     memo: Mapped[str | None] = mapped_column(Text, default=None)
     amount_cents: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(16), default="uncleared", server_default="uncleared")

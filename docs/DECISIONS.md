@@ -687,3 +687,39 @@ names unchanged), white-on-colour buttons moved to the -700 steps, disabled cont
 opacity, the ledger is an ARIA grid (rows and cells) with a focusable scroll area, and sort state sits
 on the column header. A crashing screen shows an error message instead of a blank page. Lighthouse
 scored 100 for accessibility on the dashboard, ledger, planner, reports, goals and settings.
+
+## D-109 `pb seed-demo`: a heavy, repeatable household, only into an empty database
+About 100k transactions over five years (roughly ten times a real household, to match BUILD_PLAN's
+"100k"), seven accounts, ~470 payees, a biweekly schedule with a plan for every past period, monthly
+reconciliations, card payments, cash withdrawals, a car loan and a hand-valued house. The structure goes
+through the services; the history is bulk-inserted (about 6 s). One seeded generator, so a seed always
+builds the same data. It refuses a database with accounts, so it cannot mix into real data.
+
+## D-110 `make perf` limits
+Saves (create, edit, toggle cleared) p95 < 150 ms over HTTP on the same machine (SPEC §7 says "on the
+LAN"; the network hop is left out). Typeahead is measured where it happens, in the browser: keystroke to
+suggestions p95 < 50 ms. The payee list it filters is a background download, held to the save limit.
+Scrolling 5,000 ledger rows at three rows a frame: p95 frame < 50 ms. Other reads are printed, not
+enforced. It uses the standard library's HTTP client, so no new dependency. Not part of `make e2e`: it
+needs the demo data and takes a few minutes.
+
+## D-111 Grouped queries for balances, payee usage and reports
+Balances were three queries per account and payee usage three per payee (the payee list took 660 ms
+with 473 payees). `balances_for_many` sums every account and status in one grouped query;
+`balances_as_of_many` gives net worth history and goal rates in one query using a date-bucket CASE;
+payee usage is one grouped total plus one index seek per payee for the newest entry. Report flows are
+summed in SQL per category, day and sign, and buckets are found by binary search. The one-account
+functions stay as thin wrappers, and tests check both give identical answers.
+
+## D-112 Two covering indexes replace two single-column ones (migration 0014)
+`(account_id, status, amount_cents)` replaces `ix_transactions_account_id`: balances, which every save
+returns, no longer read the table (−40%). `(payee_id, date, amount_cents)` replaces
+`ix_transactions_payee_id`: payee totals read only the index (108 → 18 ms) and the newest entry is one
+seek. A covering index on splits was measured and left out (−5% on five-year reports, not worth the
+writes).
+
+## D-113 The setup wizard's E2E runs first and shares its schedule with the budget spec
+`aa-setup.spec.ts` needs the empty household, so it runs first and makes the same biweekly schedule
+(anchored three days ago) the budget spec used to create. Opening the dashboard prefills the current
+period (D-056), so both specs hold the dashboard's request back until the budget spec's template exists.
+

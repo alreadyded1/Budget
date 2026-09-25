@@ -230,9 +230,10 @@ def _savings_rate(db: DbSession, account: Account, current: PayPeriod) -> int:
     recent = before[-RATE_PERIODS:]
     if not recent:
         return 0
-    points = [balances_service.balance_as_of(db, account, recent[0].start_date - timedelta(days=1))]
-    points += [balances_service.balance_as_of(db, account, period.end_date) for period in recent]
-    return math.average_change(points)
+    dates = [recent[0].start_date - timedelta(days=1)] + [period.end_date for period in recent]
+    return math.average_change(
+        balances_service.balances_as_of_many(db, [account], dates)[account.id]
+    )
 
 
 def progress(db: DbSession, goal: Goal, today: date) -> Progress:

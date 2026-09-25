@@ -57,10 +57,10 @@ def debts(db: DbSession) -> tuple[list[tuple[Account, math.Debt]], list[Skipped]
     accounts = db.scalars(
         select(Account).where(Account.is_closed.is_(False)).order_by(Account.sort_order, Account.id)
     ).all()
-    for account in accounts:
-        if not account.is_liability:
-            continue
-        owed = -balances_service.balances_for(db, account).current_cents
+    liabilities = [account for account in accounts if account.is_liability]
+    balances = balances_service.balances_for_many(db, liabilities)
+    for account in liabilities:
+        owed = -balances[account.id].current_cents
         if owed <= 0:
             continue
         if account.apr_bps is None or not account.min_payment_cents:

@@ -165,3 +165,7 @@ settings.
   tab order and entry-row behavior.
 - **E2E** (Playwright) covers the full keyboard entry flow and asserts that no document navigation happens.
   Added in Phase 5 and extended in Phase 16.
+- **Performance** (`make perf`, Phase 16): `pb seed-demo` builds a 100k-transaction household in a scratch
+  database, `backend/perf/run.py` times the API against the real server, and `frontend/perf/` scrolls
+  5,000 ledger rows and types into the payee typeahead. Saves over 150 ms p95, a payee list over 150 ms,
+  a scroll frame over 50 ms p95 or a keystroke over 50 ms p95 fail the run (D-110).

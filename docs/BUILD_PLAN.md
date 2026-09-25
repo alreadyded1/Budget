@@ -283,5 +283,5 @@ Implement DEPLOYMENT.md.
 - Extend the E2E suite: planner edit, import review, reconcile.
 
 **Done when**
-- [ ] The ledger scrolls smoothly and saves stay under 150 ms with 100k transactions.
+- [x] The ledger scrolls smoothly and saves stay under 150 ms with 100k transactions.
 - [x] Lighthouse accessibility score ≥ 90 on the main screens.

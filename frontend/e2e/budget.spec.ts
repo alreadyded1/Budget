@@ -35,6 +35,9 @@ function iso(date: Date): string {
 }
 
 test('planning a period from the keyboard', async ({ page }) => {
+  // The setup spec made the schedule already, so the dashboard would open (and prefill,
+  // D-056) the current period before this test's template exists. Hold it back until then.
+  await page.route('**/api/v1/dashboard', (route) => route.abort())
   await signIn(page)
   // Leave the app while setting up: the dashboard retries its first (failed, no schedule
   // yet) load, and a retry landing between the schedule and the template would prefill
@@ -44,11 +47,14 @@ test('planning a period from the keyboard', async ({ page }) => {
   const today = new Date()
   const anchor = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3)
 
-  await call(request, 'post', '/pay-schedule', {
-    frequency: 'biweekly',
-    effective_from: iso(anchor),
-    anchor_date: iso(anchor),
-  })
+  // The setup spec normally made this same schedule through the wizard already.
+  if (!(await request.get('/api/v1/pay-periods/current')).ok()) {
+    await call(request, 'post', '/pay-schedule', {
+      frequency: 'biweekly',
+      effective_from: iso(anchor),
+      anchor_date: iso(anchor),
+    })
+  }
   const account = await call<{ id: number }>(request, 'post', '/accounts', {
     name: 'Budget Checking',
     type: 'checking',
@@ -76,6 +82,7 @@ test('planning a period from the keyboard', async ({ page }) => {
     amount_cents: -500,
   })
 
+  await page.unroute('**/api/v1/dashboard')
   await page.goto('/budget')
   const plannedGroceries = page.getByLabel('Planned for Groceries')
   // A new period is prefilled from the template.

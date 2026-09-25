@@ -1,9 +1,8 @@
 # Progress
 
-**Current phase:** Phase 16 — Polish and hardening (16a done; 16b next)
-**Next step:** Phase 16b per the agreed split: `pb seed-demo` (100k transactions), `make perf`
-(ledger scroll, save p95 < 150 ms, reports), indexes where profiling shows them, grouping the balance
-and payee queries, and more E2E (planner edit, import review, reconcile are covered; add what is not).
+**Current phase:** All 16 phases are built. Every "Done when" box in BUILD_PLAN is ticked.
+**Next step:** None planned. Pick from the parking lot below, or start a new spec for anything beyond
+BUILD_PLAN. Deploy with `update.sh` (it runs migration 0014).
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -24,7 +23,7 @@ and payee queries, and more E2E (planner edit, import review, reconcile are cove
 | 13 | Goals and sinking funds | ✅ done | 2026-09-24 |
 | 14 | Net worth and debt payoff | ✅ done | 2026-09-24 |
 | 15 | Receipt attachments | ✅ done | 2026-09-25 |
-| 16 | Polish and hardening | 🟨 16a done | |
+| 16 | Polish and hardening | ✅ done | 2026-09-25 |
 
 Status key: ⬜ not started · 🟨 in progress · ✅ done
 
@@ -36,6 +35,48 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-25 — Phase 16b (Hardening)
+- **Done:**
+  - `pb seed-demo`: an empty database gets a heavy demo household in about 6 s: 100k transactions over
+    five years, 7 accounts, 473 payees, 159 pay periods, a login `demo` with a printed password
+    (D-109). The same seed always builds the same data.
+  - `make perf`: seeds a scratch database, starts the real server and times 22 API calls, then
+    Playwright scrolls 5,000 ledger rows and types into the payee typeahead (D-110).
+  - Grouped queries for balances, net worth history, goal rates, debts, the payee list and report
+    flows (D-111), and migration 0014 with two covering indexes that replace two single-column ones
+    (D-112).
+  - E2E: the setup wizard on the empty household (runs first), ledger search and filters from the
+    keyboard, and the Settings → Data downloads (checked for secrets) (D-113).
+  - `make perf` in CLAUDE.md's command list; ARCHITECTURE testing notes; DEPLOYMENT "Demo data".
+- **Measured with 100k transactions** (same machine, one uvicorn worker, p50 / p95 ms, before → after):
+  | | before | after |
+  |---|---|---|
+  | save: create | 29 / 33 | 15 / 20 |
+  | save: edit | 29 / 36 | 14 / 17 |
+  | payee list (473 payees) | 660 / 721 | 31 / 52 |
+  | balances | 66 / 73 | 20 / 22 |
+  | dashboard | 82 / 90 | 35 / 40 |
+  | net worth | 475 / 522 | 96 / 110 |
+  | income vs expense, all 5 years | 509 / 556 | 187 / 221 |
+  | spending by category, all 5 years | 349 / 381 | 189 / 221 |
+  | ledger first page / page 50 / one account | 14 / 15 / 26 | 13 / 13 / 24 |
+  - Ledger scroll: 5,000 rows at three rows per frame, p95 frame 16.7 ms (a steady 60 fps), no frame
+    over 50 ms, never waiting for a page. Typeahead: p50 12.5 ms, p95 18.2 ms per keystroke.
+- **Tests:** 547 backend (+9: demo seed, grouped queries match the one-at-a-time ones), 192 frontend,
+  15 E2E (+3), green on two runs in a row. `make perf` passes.
+- **Deviations from plan:**
+  - The frontend has no bulk-edit screen (the bulk endpoints exist only in the API), so the new E2E
+    flows are search and filters, the wizard and the export instead of bulk edits. Row edit, cleared,
+    delete and Undo were already covered by the ledger spec.
+  - The typeahead limit is measured in the browser, where SPEC §7 puts it (lists are cached there). The
+    payee list download is held to the save limit (150 ms) instead of 50 ms.
+  - The budget spec reuses the wizard's schedule and holds back the dashboard until its template exists.
+- **Known issues:**
+  - Five-year reports take about 200 ms; one-year reports stay under 120 ms. Grouping in SQLite is most
+    of it; a split covering index was measured and not worth it.
+  - `make perf` needs Chromium like `make e2e` (`PB_CHROMIUM_PATH` or `npx playwright install chromium`).
+- **Next step:** none planned (see the parking lot).
 
 ### 2026-09-25 — Phase 16a (Polish)
 - **Done:**
@@ -64,7 +105,7 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Known issues:**
   - No migration. After merging, `update.sh` rebuilds the SPA. Installing the app needs HTTPS, which
     the NPM proxy already provides.
-- **Next step:** Phase 16b (performance with 100k transactions, remaining E2E).
+- **Next step:** Phase 16b (performance with 100k transactions, remaining E2E) — done, see above.
 
 ### 2026-09-25 — Phase 15 (Receipt attachments)
 - **Done:**
@@ -631,12 +672,10 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
-- Group `GET /balances` into one query if the account list ever grows — Phase 16.
-- Group the payee usage and autofill queries into one query for the payee list — Phase 16.
-- Extend the E2E suite beyond the ledger and planner flows — Phase 16 (ARCHITECTURE §Testing).
-- A reconciliation report (statement vs. ledger per period), if wanted — Phase 16.
+- A reconciliation report (statement vs. ledger per period), if wanted. Not built.
 - A thumbnail for PDFs (first page) would need poppler; not planned.
 - A "session list / sign out everywhere" screen was not asked for; note it if it ever comes up.
+- A bulk-edit screen in the ledger (select many rows, recategorize, clear, delete); the API has it.
 
 ## Known issues
 <!-- Open bugs and limitations that aren't tied to the current phase. -->
