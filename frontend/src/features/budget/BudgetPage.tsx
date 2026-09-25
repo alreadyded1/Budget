@@ -487,7 +487,7 @@ function Row({
           {line.committed_cents > 0 && (
             <span
               className="ml-1.5 text-xs text-slate-500"
-              title="Bills due this period from Subscriptions"
+              title="Bills due this period, from Bills & Recurring"
               data-testid={`committed-${line.name}`}
             >
               {formatCents(line.committed_cents)} in bills

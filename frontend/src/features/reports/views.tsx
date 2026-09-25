@@ -495,8 +495,10 @@ export function SubscriptionsReport() {
   const today = new Date().toISOString().slice(0, 10)
   return (
     <section>
-      <Heading>Subscriptions</Heading>
-      <p className="text-sm text-slate-500">Active subscriptions, whatever the date filter says.</p>
+      <Heading>Bills &amp; Recurring</Heading>
+      <p className="text-sm text-slate-500">
+        Active bills and recurring payments, whatever the date filter says.
+      </p>
       <div className="mt-2 flex gap-6 text-sm">
         <span>
           Monthly <strong className="tabular-nums">{formatCents(data.monthly_cents)}</strong>
@@ -521,7 +523,7 @@ export function SubscriptionsReport() {
         columns={[
           { header: 'Category', cell: (row) => row.name, csv: (row) => row.name },
           {
-            header: 'Subscriptions',
+            header: 'Bills',
             cell: (row) => row.count,
             csv: (row) => row.count,
             align: 'right',

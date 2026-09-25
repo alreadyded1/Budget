@@ -85,5 +85,29 @@ test('search, category and status filters narrow the ledger without a page load'
   await page.getByLabel('Category filter').selectOption('')
   await expect(ledgerRows).toHaveCount(4)
 
+  // Editing a row: its category list sits on top of the rows below it (repair list #3).
+  await page.getByRole('rowgroup', { name: 'Transactions list' }).focus()
+  await page.keyboard.press('j')
+  await page.keyboard.press('Enter')
+  const editor = page.getByTestId('edit-row')
+  await expect(editor).toBeVisible()
+  await editor.getByLabel('Category').focus()
+  await page.keyboard.type('p')
+  const list = editor.getByRole('listbox')
+  await expect(list.getByRole('option').nth(2)).toBeVisible()
+  const covered = await list.evaluate((element) =>
+    Array.from(element.querySelectorAll('[role="option"]'))
+      .slice(0, 4)
+      .map((option) => {
+        const box = option.getBoundingClientRect()
+        const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+        return top !== null && element.contains(top)
+      }),
+  )
+  expect(covered).toEqual([true, true, true, true])
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Escape')
+  await expect(editor).toHaveCount(0)
+
   expect(documentLoads).toEqual([])
 })

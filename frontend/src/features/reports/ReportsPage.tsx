@@ -29,7 +29,7 @@ const REPORTS = [
   { key: 'payees', label: 'Payees', view: SpendingByPayeeReport },
   { key: 'trend', label: 'Category trend', view: CategoryTrendReport },
   { key: 'net-worth', label: 'Net worth', view: NetWorthReport },
-  { key: 'subscriptions', label: 'Subscriptions', view: SubscriptionsReport },
+  { key: 'subscriptions', label: 'Bills & Recurring', view: SubscriptionsReport },
   { key: 'transactions', label: 'Transactions', view: TransactionListReport },
 ] as const
 

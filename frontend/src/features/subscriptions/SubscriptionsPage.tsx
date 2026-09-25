@@ -204,7 +204,7 @@ export function SubscriptionsPage() {
   return (
     <div className="max-w-5xl">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-xl font-semibold">Subscriptions</h1>
+        <h1 className="text-xl font-semibold">Bills &amp; Recurring</h1>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-1.5 text-xs text-slate-500">
             <input
@@ -220,7 +220,7 @@ export function SubscriptionsPage() {
               onClick={() => setEditing('new')}
               className="rounded bg-sky-700 px-3 py-1.5 text-sm font-medium text-white outline-none hover:bg-sky-800 focus-visible:ring-2 focus-visible:ring-sky-500"
             >
-              Add subscription
+              Add bill
             </button>
           )}
         </div>
@@ -280,7 +280,7 @@ export function SubscriptionsPage() {
 
       {items.length === 0 ? (
         <p className="mt-6 text-sm text-slate-500">
-          No subscriptions yet. Add the bills and services you pay on a schedule.
+          No bills yet. Add the bills, subscriptions and services you pay on a schedule.
         </p>
       ) : (
         <table className="mt-4 w-full text-sm">

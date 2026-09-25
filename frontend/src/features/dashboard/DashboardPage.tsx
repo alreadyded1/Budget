@@ -231,7 +231,7 @@ export function DashboardPage() {
             <p className="text-sm text-slate-500">
               Nothing due this pay period or next.{' '}
               <Link to="/subscriptions" className="text-sky-600 underline">
-                Add subscriptions
+                Add bills
               </Link>{' '}
               to see bills here.
             </p>

@@ -128,8 +128,8 @@ export function PayeesPage() {
         <div className="mt-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950">
           <p>
             <strong>{mergeOffer.targetName}</strong> already exists. Merge{' '}
-            <strong>{mergeOffer.source.name}</strong> into it? Its transactions, subscriptions and
-            rules move across, and {mergeOffer.source.name} is removed.
+            <strong>{mergeOffer.source.name}</strong> into it? Its transactions, bills and rules
+            move across, and {mergeOffer.source.name} is removed.
           </p>
           <div className="mt-2 flex gap-2">
             <button

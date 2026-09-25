@@ -1,8 +1,8 @@
 # Progress
 
 **Current phase:** All 16 phases are built. Every "Done when" box in BUILD_PLAN is ticked.
-**Next step:** The repair list below (added 2026-09-25 from using the app). Deploy with `update.sh`
-(it runs migration 0014).
+**Next step:** None planned. New repairs go in the repair list below; bigger ideas in the parking lot.
+Deploy with `update.sh`.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -35,6 +35,22 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-25 — Repairs (from using the app)
+- **Done:**
+  1. The "Add account" form asks for APR and minimum payment when the type is a debt (credit card,
+     loan, mortgage, other liability valued by its transactions). Both optional; sent with the create.
+  2. "Subscriptions" reads "Bills & Recurring" everywhere in the UI (nav, page, report tab, planner hint,
+     calendar and dashboard links, payee merge text), and the two API messages say "bill" (D-114).
+  3. The dropdowns in a ledger row being edited no longer sit under the rows below it: the edited row
+     gets a z-index above its siblings (each virtualized row's transform is its own stacking context).
+- **Tests:** 547 backend, 195 frontend (+3: the add form sends APR and minimum for debts only and
+  refuses a bad APR), 15 E2E (the ledger search spec now checks the open category list is the topmost
+  element over the rows below; it failed before the fix).
+- **Deviations from plan:** none. URLs, API routes and names, and the "Subscriptions" spending category
+  are unchanged, as agreed.
+- **Known issues:** none new.
+- **Next step:** none planned.
 
 ### 2026-09-25 — Phase 16b (Hardening)
 - **Done:**
@@ -672,20 +688,7 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 
 ## Repair list
 <!-- Fixes found while using the finished app. Next session works through these. -->
-1. **APR and minimum payment on the "Add account" form.** Today they appear only on an existing debt
-   account's row (Accounts page), so a new card or loan needs a second step. Show both fields on the add
-   form when the type is credit card, loan, mortgage or other liability, and send `apr_bps` /
-   `min_payment_cents` with the create (the API already accepts them).
-2. **Rename "Subscriptions" to "Bills & Recurring"** in the UI: nav, page title, reports, planner and
-   calendar wording. Open questions: should the URL (`/subscriptions`) and the API names stay as they
-   are (suggested: yes, UI text only), and should the starter category "Subscriptions" under Personal
-   keep its name (suggested: yes, it is a spending category)?
-3. **Dropdown shows the rows behind it while editing a transaction** (screenshot 2026-09-25: the
-   category list over the ledger has rows' text painting through it). Cause: each virtualized ledger
-   row has a `transform`, which makes it its own stacking context, so the list's `z-30` only counts
-   inside the edited row and the rows after it paint on top. Fix: give the row being edited (and the
-   pinned entry row) a z-index above its siblings; add an E2E or component check that the open list
-   is the topmost element at its position.
+- Empty. The first three repairs are done (see the 2026-09-25 repairs entry).
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->

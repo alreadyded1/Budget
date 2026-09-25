@@ -723,3 +723,9 @@ writes).
 (anchored three days ago) the budget spec used to create. Opening the dashboard prefills the current
 period (D-056), so both specs hold the dashboard's request back until the budget spec's template exists.
 
+## D-114 "Bills & Recurring" is a UI name only (confirmed with the user, 2026-09-25)
+The Subscriptions feature is called "Bills & Recurring" on screen (one item is "a bill"). The URL
+`/subscriptions`, the API routes, the database tables and the code keep the old name, so bookmarks,
+exports and scripts keep working. The starter spending category "Subscriptions" (under Personal) keeps
+its name: it is where streaming and similar costs are categorised, not the list of scheduled bills.
+

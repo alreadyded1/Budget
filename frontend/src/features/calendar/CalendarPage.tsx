@@ -307,7 +307,7 @@ export function CalendarPage() {
       <p className="mt-4 text-xs text-slate-400">
         [ and ] change month, t returns to today, Esc closes a bill.{' '}
         <Link to="/subscriptions" className="underline">
-          Manage subscriptions
+          Manage bills
         </Link>
       </p>
     </div>

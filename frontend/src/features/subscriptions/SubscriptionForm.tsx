@@ -74,7 +74,7 @@ export function SubscriptionForm({
   return (
     <div
       role="group"
-      aria-label={editing ? 'Edit subscription' : 'New subscription'}
+      aria-label={editing ? 'Edit bill' : 'New bill'}
       className="rounded border border-sky-200 bg-sky-50/60 p-4 dark:border-sky-900 dark:bg-sky-950/30"
       onKeyDown={handleKeyDown}
       data-testid="subscription-form"
@@ -253,7 +253,7 @@ export function SubscriptionForm({
           onClick={() => onSave(form)}
           className="rounded bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800 disabled:opacity-50"
         >
-          {editing ? 'Save changes' : 'Add subscription'}
+          {editing ? 'Save changes' : 'Add bill'}
         </button>
         <button
           type="button"
