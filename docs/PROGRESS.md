@@ -1,7 +1,7 @@
 # Progress
 
 **Current phase:** All 16 phases are built. Every "Done when" box in BUILD_PLAN is ticked.
-**Next step:** None planned. New repairs go in the repair list below; bigger ideas in the parking lot.
+**Next step:** The repair list below. New repairs go there; bigger ideas in the parking lot.
 Deploy with `update.sh`.
 
 ## Phase status
@@ -688,7 +688,14 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 
 ## Repair list
 <!-- Fixes found while using the finished app. Next session works through these. -->
-- Empty. The first three repairs are done (see the 2026-09-25 repairs entry).
+1. **The date picker stays open after picking a day; give it a Done (✓) and make it close.** The ▾
+   button on every date field (ledger entry and edit rows, filters, forms) opens the browser's own
+   picker through a hidden `<input type="date">` (`frontend/src/components/DateInput.tsx`). Some
+   browsers, Safari on macOS in particular, keep that native popover open after a day is chosen, and
+   the app has no way to close it. Suggested fix: replace the native picker with a small in-app
+   calendar popover that closes when a day is picked, has a Done button, closes on Esc and on a click
+   outside, and works from the keyboard (arrows move the day, Enter picks). The typed-date shortcuts
+   stay as they are. Question: which browser and device showed it (the screenshot looks like macOS)?
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
