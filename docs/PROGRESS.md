@@ -1,8 +1,8 @@
 # Progress
 
 **Current phase:** All 16 phases are built. Every "Done when" box in BUILD_PLAN is ticked.
-**Next step:** None planned. Pick from the parking lot below, or start a new spec for anything beyond
-BUILD_PLAN. Deploy with `update.sh` (it runs migration 0014).
+**Next step:** The repair list below (added 2026-09-25 from using the app). Deploy with `update.sh`
+(it runs migration 0014).
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -669,6 +669,23 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
   - `pytest` ignores one upstream DeprecationWarning from starlette's use of `anyio.abc.BlockingPortal`;
     remove the filter in `backend/pyproject.toml` once starlette fixes it.
 - **Next step:** Plan Phase 1 (auth, users, settings).
+
+## Repair list
+<!-- Fixes found while using the finished app. Next session works through these. -->
+1. **APR and minimum payment on the "Add account" form.** Today they appear only on an existing debt
+   account's row (Accounts page), so a new card or loan needs a second step. Show both fields on the add
+   form when the type is credit card, loan, mortgage or other liability, and send `apr_bps` /
+   `min_payment_cents` with the create (the API already accepts them).
+2. **Rename "Subscriptions" to "Bills & Recurring"** in the UI: nav, page title, reports, planner and
+   calendar wording. Open questions: should the URL (`/subscriptions`) and the API names stay as they
+   are (suggested: yes, UI text only), and should the starter category "Subscriptions" under Personal
+   keep its name (suggested: yes, it is a spending category)?
+3. **Dropdown shows the rows behind it while editing a transaction** (screenshot 2026-09-25: the
+   category list over the ledger has rows' text painting through it). Cause: each virtualized ledger
+   row has a `transform`, which makes it its own stacking context, so the list's `z-30` only counts
+   inside the edited row and the rows after it paint on top. Fix: give the row being edited (and the
+   pinned entry row) a z-index above its siblings; add an E2E or component check that the open list
+   is the topmost element at its position.
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
