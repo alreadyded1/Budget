@@ -1,7 +1,7 @@
 # Progress
 
 **Current phase:** All 16 phases are built. Every "Done when" box in BUILD_PLAN is ticked.
-**Next step:** None planned. New repairs go in the repair list below; bigger ideas in the parking lot.
+**Next step:** The repair list below. New repairs go there; bigger ideas in the parking lot.
 Deploy with `update.sh`.
 
 ## Phase status
@@ -701,7 +701,14 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 
 ## Repair list
 <!-- Fixes found while using the finished app. Next session works through these. -->
-- Empty. Everything reported so far is fixed (see the 2026-09-25 repairs entries).
+1. **A debt's opening balance has to be typed as a negative number, and nothing says so.** The "Add
+   account" form saves the number as typed (sign convention: money owed is negative). A card entered
+   as `2450` reads as the bank owing you: net worth counts it as an asset and the Debt payoff page
+   silently leaves it out (it only lists debts that owe money). Fix: for credit card, loan, mortgage
+   and other liability (valued by transactions), label the field "Amount owed", take a positive number
+   and store it negated (a negative typed there stays negative, i.e. treat the sign as "owed"); show
+   debts as "owed" on the Accounts page. Also give a way to correct an opening balance that was
+   entered with the wrong sign (the API allows editing it; there is no screen for it yet).
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->
