@@ -1,5 +1,6 @@
 """FastAPI application factory: JSON API under /api/v1, built SPA on everything else."""
 
+import mimetypes
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, status
@@ -10,6 +11,9 @@ from app import __version__
 from app.api.v1 import api_router
 from app.config import Settings, get_settings
 from app.errors import register_error_handlers
+
+# The PWA manifest (D-105); Python's table does not always know the extension.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 
 def _mount_spa(app: FastAPI, dist: Path) -> None:

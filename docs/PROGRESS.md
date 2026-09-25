@@ -1,15 +1,15 @@
 # Progress
 
-**Current phase:** Phase 16 — Polish and hardening (not started)
-**Next step:** Plan Phase 16 per docs/BUILD_PLAN.md — onboarding wizard, dark mode, mobile layouts,
-PWA, accessibility pass, empty states, full JSON export, the 100k-transaction performance run, more E2E,
-and the parking lot.
+**Current phase:** Phase 16 — Polish and hardening (16a done; 16b next)
+**Next step:** Phase 16b per the agreed split: `pb seed-demo` (100k transactions), `make perf`
+(ledger scroll, save p95 < 150 ms, reports), indexes where profiling shows them, grouping the balance
+and payee queries, and more E2E (planner edit, import review, reconcile are covered; add what is not).
 
 ## Phase status
 | # | Phase | Status | Finished |
 |---|---|---|---|
 | 0 | Scaffold and tooling | ✅ done | 2026-09-22 |
-| 1 | Auth, users, settings | ✅ done * | 2026-09-22 |
+| 1 | Auth, users, settings | ✅ done | 2026-09-22 |
 | 2 | Pay schedule engine | ✅ done | 2026-09-22 |
 | 3 | Accounts, categories, payees | ✅ done | 2026-09-23 |
 | 4 | Transactions backend | ✅ done | 2026-09-23 |
@@ -24,13 +24,9 @@ and the parking lot.
 | 13 | Goals and sinking funds | ✅ done | 2026-09-24 |
 | 14 | Net worth and debt payoff | ✅ done | 2026-09-24 |
 | 15 | Receipt attachments | ✅ done | 2026-09-25 |
-| 16 | Polish and hardening | ⬜ | |
+| 16 | Polish and hardening | 🟨 16a done | |
 
 Status key: ⬜ not started · 🟨 in progress · ✅ done
-
-\* Phase 1 is built and its automated tests pass, but one "Done when" box is still open: the
-browser click-through of CLI user → login form → signed in. The browser tooling disconnected before that
-check could run. The server side of it is verified (see the session log below).
 
 ## Session log
 <!-- Newest first. Copy this block for each session.
@@ -40,6 +36,35 @@ check could run. The server side of it is verified (see the session log below).
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-25 — Phase 16a (Polish)
+- **Done:**
+  - Theme: household default plus a per-browser override in the user menu, class-based dark mode,
+    no flash on load (D-103).
+  - Phones: top bar with a Menu button, ledger card rows, a wrapping entry row, a three-column planner,
+    no sideways scrolling (D-104). Skip-to-content link.
+  - Installable: manifest, new app icon (favicon and PNGs), a service worker that caches nothing
+    (D-105). The Vite template's logo and icon sheet are gone.
+  - First-run wizard at `/setup` (pay schedule → accounts → starter categories), shown until both a
+    schedule and an account exist or it is skipped; "Run setup again" in Settings (D-106).
+  - Settings → Data: full JSON export and all transactions as CSV, streamed, secrets left out (D-107).
+  - Accessibility: axe in the E2E suite (light and dark, zero serious or critical issues), contrast
+    fixes, the ledger as an ARIA grid, an error page for crashed screens, a clearer 404 (D-108).
+    Lighthouse accessibility 100 on six main screens.
+  - Parking lot: collapsible planner groups; a rule made during import review fills that batch's
+    untouched rows (`POST /imports/{id}/apply-rules`); the ledger learns a payee's category as soon as
+    the row is typed (or the new payee is created), not after the save.
+  - The Phase 1 box is closed: every E2E spec signs in through the login form as a user the test
+    server creates with `pb create-user`, and logout clearing the session is covered by the API tests.
+  - Tests: 538 backend (+5: export, apply-rules), 192 frontend (+6: theme, error page, setup gate),
+    12 E2E (+3: accessibility light and dark, phone width).
+- **Deviations from plan:**
+  - `@axe-core/playwright` was added in 16a rather than 16b, to drive the accessibility pass.
+  - The planner needed a phone layout of its own; its columns were cut off at 390 px.
+- **Known issues:**
+  - No migration. After merging, `update.sh` rebuilds the SPA. Installing the app needs HTTPS, which
+    the NPM proxy already provides.
+- **Next step:** Phase 16b (performance with 100k transactions, remaining E2E).
 
 ### 2026-09-25 — Phase 15 (Receipt attachments)
 - **Done:**
@@ -609,14 +634,8 @@ check could run. The server side of it is verified (see the session log below).
 - Group `GET /balances` into one query if the account list ever grows — Phase 16.
 - Group the payee usage and autofill queries into one query for the payee list — Phase 16.
 - Extend the E2E suite beyond the ledger and planner flows — Phase 16 (ARCHITECTURE §Testing).
-- Collapsible groups on the planner — Phase 16.
-- Re-apply a rule created during review to the batch's other staged rows — Phase 16.
 - A reconciliation report (statement vs. ledger per period), if wanted — Phase 16.
-- Ledger: learn a new payee's last category from the optimistic row, not only from the server's
-  reply, so a fast typist's next entry prefills — Phase 16.
 - A thumbnail for PDFs (first page) would need poppler; not planned.
-- Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
-- First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.
 - A "session list / sign out everywhere" screen was not asked for; note it if it ever comes up.
 
 ## Known issues

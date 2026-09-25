@@ -178,3 +178,7 @@ export function undoImport(id: number): Promise<BatchResult> {
 export function discardImport(id: number): Promise<void> {
   return apiFetch(`/imports/${id}`, { method: 'DELETE' })
 }
+
+export function applyRules(id: number): Promise<ImportBatchDetail> {
+  return apiFetch(`/imports/${id}/apply-rules`, { method: 'POST' })
+}

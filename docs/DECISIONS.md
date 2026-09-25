@@ -648,3 +648,42 @@ opens the receipts of the selected row. The dialog takes drag and drop or the fi
 phone offers the camera), checks the size first, previews images with ← / →, and deletes after a
 confirm. Files are served only to a signed-in session, `inline`, with `nosniff`. An NGINX 413 is an
 HTML page, so the client names it: "too large for the server (check client_max_body_size in NPM)".
+
+## D-103 Theme: household default, browser override, set before first paint (confirmed with the user, 2026-09-25)
+Settings' `theme_default` (light / dark / system) is the household default; the user menu's "Theme
+here" overrides it in this browser (localStorage). Tailwind's `dark:` variant now follows a `dark`
+class on `<html>` rather than only the OS, and the chart colours follow the class too. An inline
+script in index.html applies the remembered choice before React loads, so nothing flashes.
+
+## D-104 Phones: a top bar, card rows, three planner columns
+Below 640 px the sidebar becomes a Menu button in a top bar; the ledger shows two-line card rows 60 px
+tall (tap selects, a second tap edits; status and receipts are touch-sized buttons) and the entry row
+wraps two fields to a line; the planner shows category, planned and remaining, with the amount spent
+under the name. The E2E suite fails if a main screen scrolls sideways at 390 px. Folded planner groups
+are remembered per browser.
+
+## D-105 Installable, caching nothing (confirmed with the user, 2026-09-25)
+A web manifest, icons (192, 512, maskable 512, Apple touch) and a service worker make the app
+installable. The worker caches nothing (navigations go to the network), so a balance is never served
+stale; offline use stays out of scope (SPEC §18). It is registered in production builds only.
+
+## D-106 The setup wizard shows until there is a schedule and an account (confirmed with the user, 2026-09-25)
+After sign-in, a household with no pay schedule or no account goes to `/setup`: pay schedule → accounts
+→ categories (the starter set, or edit). "Skip for now" is remembered per browser; Settings → General
+has "Run setup again". Settings pages stay reachable while setup is pending.
+
+## D-107 Data export: everything but secrets, streamed (confirmed with the user, 2026-09-25)
+Settings → Data offers `GET /export/json` (every table, one JSON object, streamed in batches) and
+`GET /export/transactions.csv` (one line per split, oldest first, plain signed decimals, transfer
+legs name the other account). Password hashes, sessions and the ntfy token are never exported;
+receipt files stay in the nightly backups. The export is a record, not a restore format.
+
+## D-108 Accessibility: axe in the E2E suite, contrast-safe shades, a real grid
+`@axe-core/playwright` (dev dependency: the rule engine behind Lighthouse's accessibility score) checks
+the main screens in light and dark on every `make e2e`, failing on any serious or critical issue; it runs
+last so it sees every spec's data and cannot prefill a period early. To pass it, the slate-400/500,
+sky-600, emerald-600, amber-600 and rose-600 shades are re-pointed per theme so text meets 4.5:1 (class
+names unchanged), white-on-colour buttons moved to the -700 steps, disabled controls dim by colour not
+opacity, the ledger is an ARIA grid (rows and cells) with a focusable scroll area, and sort state sits
+on the column header. A crashing screen shows an error message instead of a blank page. Lighthouse
+scored 100 for accessibility on the dashboard, ledger, planner, reports, goals and settings.

@@ -251,7 +251,7 @@ export function SubscriptionForm({
           type="button"
           disabled={busy}
           onClick={() => onSave(form)}
-          className="rounded bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+          className="rounded bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800 disabled:opacity-50"
         >
           {editing ? 'Save changes' : 'Add subscription'}
         </button>

@@ -8,6 +8,7 @@ import { Combobox, CREATE_KEY } from '../../components/Combobox'
 import type { ComboOption } from '../../components/Combobox'
 import { DateInput } from '../../components/DateInput'
 import { formatCents } from '../../lib/money'
+import { useNarrow } from '../../components/useNarrow'
 import { INPUT_CLASS, gridTemplate } from './columns'
 import { SPLIT_LABEL, centsToInput, newSplit, splitRemaining, transferLabel } from './draft'
 import type { Draft, FieldName, Lookups, SplitDraft } from './draft'
@@ -50,6 +51,7 @@ export function EntryRow({
 }: Props) {
   // A Map held in state (not a ref) so the ref callbacks below can be built during render.
   const [fields] = useState(() => new Map<FieldName, HTMLInputElement | null>())
+  const narrow = useNarrow()
 
   const refFor = (name: FieldName) => (element: HTMLInputElement | null) => {
     fields.set(name, element)
@@ -254,7 +256,7 @@ export function EntryRow({
     >
       <div
         className="grid items-center gap-1.5"
-        style={{ gridTemplateColumns: gridTemplate(fixedAccount === null) }}
+        style={{ gridTemplateColumns: gridTemplate(fixedAccount === null, narrow) }}
       >
         {fixedAccount === null && (
           <Combobox
@@ -339,7 +341,7 @@ export function EntryRow({
             tabIndex={-1}
             disabled={busy}
             onClick={onSave}
-            className="rounded bg-sky-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-sky-700 disabled:opacity-50"
+            className="rounded bg-sky-700 px-2 py-0.5 text-xs font-medium text-white hover:bg-sky-800 disabled:opacity-50"
           >
             {mode === 'new' ? 'Save' : 'Done'}
           </button>
@@ -362,7 +364,7 @@ export function EntryRow({
             <div
               key={split.key}
               className="grid items-center gap-1.5"
-              style={{ gridTemplateColumns: gridTemplate(fixedAccount === null) }}
+              style={{ gridTemplateColumns: gridTemplate(fixedAccount === null, narrow) }}
             >
               {fixedAccount === null && <div />}
               <div />

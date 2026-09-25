@@ -8,13 +8,14 @@ const TABS = [
   { to: '/settings/rules', label: 'Rules' },
   { to: '/settings/notifications', label: 'Notifications' },
   { to: '/settings/users', label: 'Users' },
+  { to: '/settings/data', label: 'Data' },
 ]
 
 export function SettingsLayout() {
   return (
     <section>
       <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
-      <nav className="mt-4 flex gap-1 border-b border-slate-200 dark:border-slate-800">
+      <nav className="mt-4 flex gap-1 overflow-x-auto border-b border-slate-200 dark:border-slate-800">
         {TABS.map((tab) => (
           <NavLink
             key={tab.to}

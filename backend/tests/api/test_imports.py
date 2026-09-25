@@ -455,3 +455,27 @@ def test_merging_payees_moves_their_rules(auth_client):
     post(auth_client, f"/api/v1/payees/{keep['id']}/merge", {"source_id": old["id"]})
     rules = auth_client.get("/api/v1/rules").json()["items"]
     assert [r["set_payee_id"] for r in rules if r["id"] == rule["id"]] == [keep["id"]]
+
+
+def test_a_rule_made_during_review_fills_the_untouched_rows(auth_client, checking):
+    profile = post(auth_client, "/api/v1/import-profiles", SIGNED)
+    batch = stage(auth_client, checking, "signed.csv", profile["id"])
+    coffees = [row for row in batch["rows"] if row["raw_description"] == "COFFEE HOUSE"]
+    # One coffee was already given a payee by hand; the rule must not overwrite it.
+    mine = post(auth_client, "/api/v1/payees", {"name": "My café"})
+    auth_client.patch(
+        f"/api/v1/imports/{batch['id']}/rows/{coffees[0]['id']}",
+        json={"payee_id": mine["id"]},
+        headers=HEADERS,
+    )
+    house = post(auth_client, "/api/v1/payees", {"name": "Coffee House"})
+    post(auth_client, "/api/v1/rules", {"match_value": "coffee", "set_payee_id": house["id"]})
+
+    body = post(auth_client, f"/api/v1/imports/{batch['id']}/apply-rules")
+
+    rows = {row["id"]: row for row in body["rows"]}
+    assert rows[coffees[0]["id"]]["payee_id"] == mine["id"]
+    assert rows[coffees[1]["id"]]["payee_id"] == house["id"]
+    assert rows[coffees[1]["id"]]["applied_rule_id"] is not None
+    others = [row for row in body["rows"] if "COFFEE" not in row["raw_description"]]
+    assert all(row["payee_id"] is None for row in others)

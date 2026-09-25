@@ -213,6 +213,22 @@ function ledgerCacheOps(queryClient: QueryClient, view: View) {
   }
 }
 
+/** Just enough of a transaction for rememberPayee, from what is about to be saved. */
+function draftTransaction(body: TransactionInput): Transaction {
+  return {
+    payee_id: body.payee_id ?? null,
+    date: body.date,
+    amount_cents: body.amount_cents,
+    splits: (body.splits ?? []).map((split, index) => ({
+      id: 0,
+      category_id: split.category_id ?? null,
+      amount_cents: split.amount_cents,
+      memo: split.memo ?? null,
+      sort_order: index,
+    })),
+  } as Transaction
+}
+
 function rememberPayee(queryClient: QueryClient, payee: Payee | null, transaction: Transaction) {
   queryClient.setQueryData<{ items: Payee[] }>(payeeListKey, (data) => {
     if (!data) return data
@@ -347,12 +363,17 @@ export function useLedgerMutations(view: View, payees: Payee[]) {
       if (plan.newPayeeName) {
         payee = await findOrCreatePayee(plan.newPayeeName)
         body.payee_id = payee.id
+        // Teach the typeahead now, not after the save: the next entry may already be typed.
+        rememberPayee(queryClient, payee, draftTransaction(body))
       }
       return { result: await createTransaction(body), payee }
     },
     onMutate: async (plan) => {
       const snapshot = await ops.begin()
       const rows = optimisticRows(plan, payees)
+      if (plan.kind === 'transaction' && plan.body.payee_id && rows[0]) {
+        rememberPayee(queryClient, null, rows[0])
+      }
       ops.local(
         (items) =>
           rows.reduce(

@@ -273,7 +273,7 @@ export function CalendarPage() {
                   type="button"
                   autoFocus
                   onClick={() => actions.markPaid(selected)}
-                  className="rounded bg-sky-600 px-3 py-1 text-sm font-medium text-white hover:bg-sky-700"
+                  className="rounded bg-sky-700 px-3 py-1 text-sm font-medium text-white hover:bg-sky-800"
                 >
                   Mark paid
                 </button>

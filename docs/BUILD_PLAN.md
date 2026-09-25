@@ -53,7 +53,7 @@ The MVP you can use every day is ready after **Phase 7**.
 **Done when**
 - [x] Tests cover login success and failure, lockout after 5 failures, 401 on protected routes, CSRF header
       rejection, and session expiry.
-- [ ] A user created with the CLI can log in through the UI. Logging out clears the session server-side.
+- [x] A user created with the CLI can log in through the UI. Logging out clears the session server-side.
 
 ## Phase 2 — Pay schedule engine
 - Tables: pay_schedules and pay_periods.
@@ -284,4 +284,4 @@ Implement DEPLOYMENT.md.
 
 **Done when**
 - [ ] The ledger scrolls smoothly and saves stay under 150 ms with 100k transactions.
-- [ ] Lighthouse accessibility score ≥ 90 on the main screens.
+- [x] Lighthouse accessibility score ≥ 90 on the main screens.

@@ -1,5 +1,29 @@
 @import 'tailwindcss';
 
+/* Dark mode follows a class on <html> (src/lib/theme.ts), not only the OS (D-103). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Contrast (D-108): the shades used for secondary text, links and status are re-pointed so
+ * text meets WCAG AA (4.5:1) on this app's light and dark surfaces. Class names stay the same;
+ * light mode gets darker steps, dark mode lighter ones. */
+@theme {
+  --color-slate-400: #64748b;
+  --color-slate-500: #4b5b73;
+  --color-sky-600: #0369a1;
+  --color-emerald-600: #047857;
+  --color-amber-600: #b45309;
+  --color-rose-600: #be123c;
+}
+:root.dark {
+  --color-slate-400: #a3b1c6;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #b4c0d0;
+  --color-sky-600: #38bdf8;
+  --color-emerald-600: #34d399;
+  --color-amber-600: #fbbf24;
+  --color-rose-600: #fb7185;
+}
+
 @layer base {
   html,
   body,
@@ -22,19 +46,17 @@
   --chart-grid: #e2e8f0;
   --chart-axis: #64748b;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-7: #9085e9;
-    --series-8: #e66767;
-    --chart-grid: #1e293b;
-    --chart-axis: #94a3b8;
-  }
+:root.dark {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+  --chart-grid: #1e293b;
+  --chart-axis: #94a3b8;
 }
 
 /* Reports print as their tables and charts: no navigation, filters or buttons. */

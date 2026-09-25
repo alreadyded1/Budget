@@ -16,6 +16,8 @@ import { ImportPage } from './features/import/ImportPage'
 import { LedgerPage } from './features/ledger/LedgerPage'
 import { PayeesPage } from './features/payees/PayeesPage'
 import { ReconcilePage } from './features/reconcile/ReconcilePage'
+import { SetupPage } from './features/setup/SetupPage'
+import { DataSettingsPage } from './features/settings/DataSettingsPage'
 import { GeneralSettingsPage } from './features/settings/GeneralSettingsPage'
 import { NotificationsSettingsPage } from './features/settings/NotificationsSettingsPage'
 import { PayPeriodsPage } from './features/settings/PayPeriodsPage'
@@ -48,6 +50,7 @@ export function AppRoutes() {
         <Route index element={<DashboardPage />} />
         <Route path="budget" element={<BudgetPage />} />
         <Route path="budget/:periodId" element={<BudgetPage />} />
+        <Route path="setup" element={<SetupPage />} />
         <Route path="goals" element={<GoalsPage />} />
         <Route path="debt" element={<DebtPage />} />
         <Route path="transactions" element={<LedgerPage />} />
@@ -69,6 +72,7 @@ export function AppRoutes() {
           <Route path="rules" element={<RulesSettingsPage />} />
           <Route path="notifications" element={<NotificationsSettingsPage />} />
           <Route path="users" element={<UsersSettingsPage />} />
+          <Route path="data" element={<DataSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>

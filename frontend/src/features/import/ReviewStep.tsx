@@ -3,7 +3,7 @@ import { Fragment, useMemo, useState } from 'react'
 
 import type { Account } from '../../api/accounts'
 import { ApiRequestError } from '../../api/client'
-import { patchRow } from '../../api/imports'
+import { applyRules, patchRow } from '../../api/imports'
 import type { Disposition, ImportBatchDetail, RowPatch, StagedRow } from '../../api/imports'
 import { queryKeys } from '../../api/keys'
 import type { Payee } from '../../api/payees'
@@ -102,7 +102,21 @@ export function ReviewStep({
 
   const saveRule = useRuleSave((rule) => {
     setRuleFor(null)
-    toast(`Rule “${rule.name}” saved. It fills in rows from the next import on.`, 'success')
+    // Fill this batch's untouched rows from the new rule too, not only future imports.
+    applyRules(batch.id)
+      .then((updated) => {
+        const filled = updated.rows.filter(
+          (row) =>
+            row.applied_rule_id === rule.id &&
+            batch.rows.find((before) => before.id === row.id)?.applied_rule_id !== rule.id,
+        ).length
+        queryClient.setQueryData(key, updated)
+        toast(
+          `Rule “${rule.name}” saved${filled ? ` and filled ${filled} row${filled === 1 ? '' : 's'} here` : ''}.`,
+          'success',
+        )
+      })
+      .catch(() => toast(`Rule “${rule.name}” saved. It applies from the next import on.`))
   })
 
   const summary = reviewSummary(batch.rows)

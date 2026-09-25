@@ -205,6 +205,13 @@ def undo_import(batch_id: int, db: DbSession = Depends(get_db)) -> BatchResultOu
     )
 
 
+@router.post("/imports/{batch_id}/apply-rules", response_model=BatchDetailOut)
+def apply_rules(batch_id: int, db: DbSession = Depends(get_db)) -> BatchDetailOut:
+    """Fill rows nobody has edited from the rules, e.g. after "Create rule from this"."""
+    batch, _ = service.apply_rules(db, batch_id)
+    return detail_out(db, batch)
+
+
 @router.delete("/imports/{batch_id}", status_code=204)
 def discard_import(batch_id: int, db: DbSession = Depends(get_db)) -> Response:
     service.discard(db, batch_id)
