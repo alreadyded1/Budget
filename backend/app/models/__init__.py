@@ -8,6 +8,7 @@ from app.models.account import (
     Account,
     AccountValuation,
 )
+from app.models.attachment import Attachment
 from app.models.base import Base, TimestampMixin, utcnow
 from app.models.budget import PeriodPlan
 from app.models.category import GROUP_KINDS, Category, CategoryGroup
@@ -57,6 +58,7 @@ __all__ = [
     "PaySchedule",
     "Payee",
     "Goal",
+    "Attachment",
     "DebtPlan",
     "DEBT_PLAN_ID",
     "GOAL_TYPES",

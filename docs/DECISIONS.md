@@ -620,3 +620,31 @@ strategy or custom order without saving; Save plan stores them in the single `de
 ## D-098 A plan that cannot finish stops at 50 years (confirmed with the user, 2026-09-24)
 If minimums never cover the interest the simulation stops after 600 months and reports "Not within
 50 years" instead of a debt-free date.
+
+## D-099 Receipts are uploaded as the raw request body, checked by content (confirmed with the user, 2026-09-24)
+`POST /transactions/{id}/attachments` takes the file itself as the body, its name URL-encoded in
+`X-Filename`, so no multipart library is needed (and nothing is inflated as base64 JSON). The body is
+streamed to `receipts/tmp/`, counted against `PB_MAX_UPLOAD_MB` (a declared Content-Length over it is
+refused before reading), hashed, and its type is read from its first bytes: JPEG, PNG, WEBP, HEIC or
+PDF, nothing else (415). Images must decode. Only then is it moved to `receipts/YYYY/MM/<uuid>.<ext>`.
+Pillow and pillow-heif (named in ARCHITECTURE) make the thumbnails; they are the phase's only new
+dependencies.
+
+## D-100 Files go only after the delete commits
+Deleting an attachment, or a transaction by any path (single, bulk, transfer, import undo, a
+reconciliation adjustment), queues its files through the `transactions_deleting` registry; a session
+`after_commit` hook removes them and `after_rollback` forgets the list, so a failed delete never loses
+a receipt. The `attachments` rows cascade in the database.
+
+## D-101 Originals stay untouched; thumbnails and previews are fresh JPEGs (confirmed with the user, 2026-09-24)
+The uploaded file is kept byte for byte (it is the record). A 256 px thumbnail is made for every image
+and a 1600 px JPEG preview for HEIC, which only Safari can show; both are rotated upright from EXIF and
+carry no metadata (no GPS). PDFs get a document tile and open in the browser's viewer (no poppler).
+Decoding stops past 60 megapixels (decompression bombs).
+
+## D-102 Receipts in the ledger; a proxy 413 is explained
+A paperclip shows on rows with receipts, and faintly on the selected row to add the first one; `r`
+opens the receipts of the selected row. The dialog takes drag and drop or the file picker (which on a
+phone offers the camera), checks the size first, previews images with ← / →, and deletes after a
+confirm. Files are served only to a signed-in session, `inline`, with `nosniff`. An NGINX 413 is an
+HTML page, so the client names it: "too large for the server (check client_max_body_size in NPM)".

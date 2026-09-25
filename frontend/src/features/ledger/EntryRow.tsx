@@ -1,5 +1,6 @@
 import { useCallback, useImperativeHandle, useMemo, useState } from 'react'
 import type { Dispatch, KeyboardEvent, Ref, SetStateAction } from 'react'
+import { flushSync } from 'react-dom'
 
 import type { Account } from '../../api/accounts'
 import { AmountInput } from '../../components/AmountInput'
@@ -215,10 +216,14 @@ export function EntryRow({
     if (event.key === 'Tab' && !event.shiftKey && isLast && remaining !== null && remaining > 0) {
       // Tabbing out of the last line with money left over starts the next line with it.
       event.preventDefault()
-      setDraft((current) => ({
-        ...current,
-        splits: [...(current.splits ?? []), newSplit(centsToInput(remaining))],
-      }))
+      // Render the new line now, so focus moves before the next keystroke arrives; a
+      // deferred focus let fast typing land in the old amount field.
+      flushSync(() =>
+        setDraft((current) => ({
+          ...current,
+          splits: [...(current.splits ?? []), newSplit(centsToInput(remaining))],
+        })),
+      )
       focusSoon(`split-${splits.length}-category`)
     }
   }

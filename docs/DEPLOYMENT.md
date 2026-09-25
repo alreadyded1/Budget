@@ -85,7 +85,7 @@ Proxy host settings:
 - Block Common Exploits: on. Websockets: not needed.
 - SSL tab: your certificate, Force SSL, HTTP/2.
 
-If statement imports (over 1 MB) or, later, receipt uploads fail with 413, add `client_max_body_size 20m;` to the host's Advanced tab.
+Receipt uploads and statement imports need `client_max_body_size 20m;` on the host's Advanced tab (NGINX's default is 1 MB). Without it NPM answers large uploads with its own HTML 413, which the app shows as "too large for the server (check client_max_body_size in NPM)". The app's own limit is `PB_MAX_UPLOAD_MB` (10), refused with a JSON 413.
 
 ## Firewall
 - Allow port 8000 **only from the NPM LXC IP**. Use the Proxmox firewall on the CT or nftables inside it.

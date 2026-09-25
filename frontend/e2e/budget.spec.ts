@@ -36,6 +36,10 @@ function iso(date: Date): string {
 
 test('planning a period from the keyboard', async ({ page }) => {
   await signIn(page)
+  // Leave the app while setting up: the dashboard retries its first (failed, no schedule
+  // yet) load, and a retry landing between the schedule and the template would prefill
+  // the new period before the template exists (D-056).
+  await page.goto('about:blank')
   const request = page.request
   const today = new Date()
   const anchor = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 3)

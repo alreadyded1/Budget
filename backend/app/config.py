@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     base_url: str = "http://localhost:8000"
     #: Nightly backups older than this many days are deleted (the newest is always kept).
     backup_keep_days: int = 14
+    #: Largest receipt upload, in megabytes (SPEC §15).
+    max_upload_mb: int = 10
 
     @field_validator("env")
     @classmethod

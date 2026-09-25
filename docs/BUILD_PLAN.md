@@ -269,9 +269,9 @@ Implement DEPLOYMENT.md.
 - Backups include receipts.
 
 **Done when**
-- [ ] Unauthenticated requests can't fetch a receipt.
-- [ ] Deleting a transaction removes its files.
-- [ ] Uploads over the size limit are rejected cleanly (a 413 behind NPM is documented).
+- [x] Unauthenticated requests can't fetch a receipt.
+- [x] Deleting a transaction removes its files.
+- [x] Uploads over the size limit are rejected cleanly (a 413 behind NPM is documented).
 
 ## Phase 16 — Polish and hardening
 - First-run onboarding wizard (pay schedule → accounts → categories).
