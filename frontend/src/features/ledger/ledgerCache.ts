@@ -26,6 +26,21 @@ export function flatRows(data: LedgerData | undefined): LedgerRow[] {
   return data?.pages.flatMap((page) => page.items) ?? []
 }
 
+/** Sets one row's receipt count after an upload or delete, wherever it is cached. */
+export function withAttachmentCount(data: LedgerData, id: number, count: number): LedgerData {
+  return {
+    ...data,
+    pages: data.pages.map((page) => ({
+      ...page,
+      items: page.items.map((row) =>
+        row.transaction.id === id
+          ? { ...row, transaction: { ...row.transaction, attachment_count: count } }
+          : row,
+      ),
+    })),
+  }
+}
+
 export function removeRows(data: LedgerData, ids: Iterable<number>): LedgerData {
   const gone = new Set(ids)
   return {

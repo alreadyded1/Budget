@@ -74,6 +74,8 @@ class TransactionOut(BaseModel):
     #: The account on the other leg of a transfer; null for everything else.
     transfer_account_id: int | None = None
     splits: list[SplitOut]
+    #: Receipts attached to it (SPEC §15).
+    attachment_count: int = 0
 
 
 class BalanceOut(BaseModel):

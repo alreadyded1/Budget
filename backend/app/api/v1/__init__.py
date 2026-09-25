@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 
 from app.api.v1 import (
     accounts,
+    attachments,
     auth,
     budget,
     categories,
@@ -46,6 +47,7 @@ protected.include_router(reconcile.router)
 protected.include_router(reports.router)
 protected.include_router(goals.router)
 protected.include_router(net_worth.router)
+protected.include_router(attachments.router)
 protected.include_router(budget.router)
 protected.include_router(subscriptions.router)
 protected.include_router(notifications.router)

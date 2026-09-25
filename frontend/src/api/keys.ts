@@ -25,6 +25,7 @@ export const queryKeys = {
   reconcile: ['reconcile'] as const,
   reports: ['reports'] as const,
   goals: ['goals'] as const,
+  attachments: (transactionId: number) => ['attachments', transactionId] as const,
   netWorth: (range: string) => ['net-worth', range] as const,
   netWorthAll: ['net-worth'] as const,
   debtPlan: ['debt-plan'] as const,

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Link, NavLink, useParams, useSearchParams } from 'react-router-dom'
 
 import type { Account } from '../../api/accounts'
@@ -14,8 +15,10 @@ import { formatCents } from '../../lib/money'
 import { EntryRow } from './EntryRow'
 import type { EntryRowHandle } from './EntryRow'
 import { FilterBar } from './FilterBar'
-import { flatRows } from './ledgerCache'
+import { flatRows, withAttachmentCount } from './ledgerCache'
+import type { LedgerData } from './ledgerCache'
 import { LedgerTable } from './LedgerTable'
+import { ReceiptsDialog } from './ReceiptsDialog'
 import { ShortcutOverlay } from './ShortcutOverlay'
 import { buildSave, draftAmount, draftFromBill, draftFromTransaction, emptyDraft } from './draft'
 import type { Draft, Lookups } from './draft'
@@ -177,6 +180,7 @@ function LedgerView({
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editDraft, setEditDraft] = useState<Draft>(() => emptyDraft(today))
   const [showHelp, setShowHelp] = useState(false)
+  const [receiptsFor, setReceiptsFor] = useState<number | null>(null)
   const lastDeleted = useRef<Transaction | null>(null)
 
   const rows = flatRows(ledger.data)
@@ -283,10 +287,14 @@ function LedgerView({
   function openEditor(id: number) {
     const row = mutations.find(id)
     if (row === undefined || id < 0) return
-    setSelectedId(id)
-    setEditDraft(draftFromTransaction(row, lookups))
-    setEditingId(id)
-    window.setTimeout(() => editRef.current?.focus('payee'), 0)
+    // Render the editor now and focus it at once: a deferred focus let the first keys
+    // typed after Enter land outside it.
+    flushSync(() => {
+      setSelectedId(id)
+      setEditDraft(draftFromTransaction(row, lookups))
+      setEditingId(id)
+    })
+    editRef.current?.focus('payee')
   }
 
   function closeEditor() {
@@ -362,6 +370,13 @@ function LedgerView({
   }
 
   // --------------------------------------------------------------- row shortcuts
+
+  function receiptsTitle(id: number): string {
+    const row = mutations.find(id)
+    if (!row) return 'transaction'
+    const payee = reference.payees.find((p) => p.id === row.payee_id)?.name ?? row.memo ?? ''
+    return `${row.date} ${payee} ${formatCents(row.amount_cents)}`.trim()
+  }
 
   function toggleCleared(id: number | null) {
     const row = id === null ? undefined : mutations.find(id)
@@ -460,7 +475,7 @@ function LedgerView({
     selected: selectedId,
     onSelect: setSelectedId,
     onOpen: openEditor,
-    enabled: editingId === null && !showHelp,
+    enabled: editingId === null && !showHelp && receiptsFor === null,
     keys: {
       n: () => entryRef.current?.focus(account === null ? 'account' : 'date'),
       '/': () => searchRef.current?.focus(),
@@ -469,6 +484,9 @@ function LedgerView({
       Delete: (id) => deleteRow(id),
       Backspace: (id) => deleteRow(id),
       u: undoDelete,
+      r: (id) => {
+        if (id !== null && id > 0) setReceiptsFor(id)
+      },
     },
   })
 
@@ -578,6 +596,7 @@ function LedgerView({
           onSelect={setSelectedId}
           onOpen={openEditor}
           onToggleCleared={toggleCleared}
+          onReceipts={setReceiptsFor}
           hasMore={ledger.hasNextPage}
           loadingMore={ledger.isFetchingNextPage}
           onLoadMore={() => void ledger.fetchNextPage()}
@@ -610,6 +629,19 @@ function LedgerView({
         />
       )}
       {showHelp && <ShortcutOverlay onClose={() => setShowHelp(false)} />}
+      {receiptsFor !== null && (
+        <ReceiptsDialog
+          transactionId={receiptsFor}
+          title={receiptsTitle(receiptsFor)}
+          onClose={() => setReceiptsFor(null)}
+          onCount={(id, count) =>
+            // Every cached ledger view that holds the row gets the new paperclip count.
+            queryClient.setQueriesData<LedgerData>({ queryKey: queryKeys.transactions }, (data) =>
+              data && 'pages' in data ? withAttachmentCount(data, id, count) : data,
+            )
+          }
+        />
+      )}
     </div>
   )
 }

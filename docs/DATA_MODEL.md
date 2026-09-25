@@ -232,7 +232,8 @@ net worth history counts an account through that day (D-094).
 - `original_filename`
 - `stored_path` — relative to the receipts directory
 - `mime_type`, `size_bytes`, `sha256`
-- `thumbnail_path` (nullable)
+- `thumbnail_path` (nullable) — a 256 px JPEG beside images; none for PDFs
+- `preview_path` (nullable) — a browser-viewable JPEG for HEIC (D-101)
 - `uploaded_by`
 
 ## Notifications

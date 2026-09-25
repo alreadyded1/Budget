@@ -22,6 +22,8 @@ export type Transaction = {
   transfer_id: string | null
   transfer_account_id: number | null
   splits: Split[]
+  /** Receipts attached to it (SPEC §15). */
+  attachment_count?: number
   /** Client-only: the name typed for a payee that is still being created. */
   pending_payee_name?: string
 }

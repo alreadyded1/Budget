@@ -1,8 +1,9 @@
 # Progress
 
-**Current phase:** Phase 15 — Receipt attachments (not started)
-**Next step:** Plan Phase 15 per docs/BUILD_PLAN.md and SPEC §15 — uploads with type and size checks,
-thumbnails (HEIC too), authenticated download, delete with the transaction, and receipts in backups.
+**Current phase:** Phase 16 — Polish and hardening (not started)
+**Next step:** Plan Phase 16 per docs/BUILD_PLAN.md — onboarding wizard, dark mode, mobile layouts,
+PWA, accessibility pass, empty states, full JSON export, the 100k-transaction performance run, more E2E,
+and the parking lot.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -22,7 +23,7 @@ thumbnails (HEIC too), authenticated download, delete with the transaction, and 
 | 12 | Reports | ✅ done | 2026-09-24 |
 | 13 | Goals and sinking funds | ✅ done | 2026-09-24 |
 | 14 | Net worth and debt payoff | ✅ done | 2026-09-24 |
-| 15 | Receipt attachments | ⬜ | |
+| 15 | Receipt attachments | ✅ done | 2026-09-25 |
 | 16 | Polish and hardening | ⬜ | |
 
 Status key: ⬜ not started · 🟨 in progress · ✅ done
@@ -39,6 +40,32 @@ check could run. The server side of it is verified (see the session log below).
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-25 — Phase 15 (Receipt attachments)
+- **Done:**
+  - Migration `0013`: `attachments` (DATA_MODEL, plus `preview_path`); `PB_MAX_UPLOAD_MB` in config.
+  - `app/domain/files.py`: type sniffing by content and safe display names (pure, tested).
+  - `app/services/attachments.py` and API: streamed raw-body upload with the size limit, sha256, temp
+    file then move, upright metadata-free thumbnails and HEIC previews (D-099, D-101); list,
+    authenticated download / thumbnail / preview, delete; files removed only after commit, including
+    when a transaction goes by any path (D-100). Ledger rows carry `attachment_count`.
+  - UI: a paperclip in the ledger (faint on the selected row to add the first receipt), `r` to open,
+    a receipts dialog with thumbnails, image preview (← / →), PDF tiles, drag and drop, the file picker,
+    a size check before sending, delete, and a plain message for NPM's HTML 413 (D-102).
+  - Pillow and pillow-heif added (ARCHITECTURE already named them).
+  - Tests: 533 backend (+17: 3 domain, 14 API covering all three Done-when boxes plus HEIC, disguised
+    and broken files, streamed and declared oversize, CSRF, rollback), 186 frontend (+4), 9 E2E (+1:
+    upload from the keyboard, preview, stranger refused, file gone with its transaction).
+- **Deviations from plan:**
+  - The E2E runs exposed four timing races, now fixed: a new split line and the inline editor took
+    focus a tick late, so fast typing landed in the wrong field (both now render synchronously and
+    focus at once); the import review let Commit run before a row edit had saved (Commit now waits);
+    and the planner spec set up its data while the dashboard could retry and prefill the period
+    early (the spec now leaves the app during setup). The full suite then passed 8 of 8 runs.
+- **Known issues:**
+  - After merging, run `update.sh` on the LXC: it applies migration `0013` and installs Pillow and
+    pillow-heif. In NPM, raise the proxy host's Advanced setting to `client_max_body_size 20m;`.
+- **Next step:** Plan Phase 16 (polish and hardening).
 
 ### 2026-09-24 — Phase 14 (Net worth and debt payoff)
 - **Done:**
@@ -587,6 +614,7 @@ check could run. The server side of it is verified (see the session log below).
 - A reconciliation report (statement vs. ledger per period), if wanted — Phase 16.
 - Ledger: learn a new payee's last category from the optimistic row, not only from the server's
   reply, so a fast typist's next entry prefills — Phase 16.
+- A thumbnail for PDFs (first page) would need poppler; not planned.
 - Apply `theme_default` (and a per-browser override) to the UI — Phase 16.
 - First-run onboarding wizard (pay schedule → accounts → categories) — SPEC §17, after Phase 3.
 - A "session list / sign out everywhere" screen was not asked for; note it if it ever comes up.

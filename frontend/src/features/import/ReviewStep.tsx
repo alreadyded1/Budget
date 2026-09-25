@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Fragment, useMemo, useState } from 'react'
 
 import type { Account } from '../../api/accounts'
@@ -67,7 +67,11 @@ export function ReviewStep({
   )
   const payeeName = (id: number | null) => payees.find((payee) => payee.id === id)?.name ?? ''
 
+  const rowKey = ['imports', 'row', batch.id]
+  // Commit waits for row edits still on their way, or it could import without them.
+  const saving = useIsMutating({ mutationKey: rowKey }) > 0
   const patch = useMutation({
+    mutationKey: rowKey,
     mutationFn: ({ row, change }: { row: StagedRow; change: RowPatch }) =>
       patchRow(batch.id, row.id, change),
     onMutate: async ({ row, change }) => {
@@ -189,8 +193,9 @@ export function ReviewStep({
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || saving}
           onClick={onCommit}
+          title={saving ? 'Saving your changes…' : undefined}
           className="rounded bg-slate-900 px-3 py-1.5 text-sm font-medium text-white outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
         >
           Commit import

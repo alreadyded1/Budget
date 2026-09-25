@@ -9,6 +9,7 @@ const SHORTCUTS: [string, string][] = [
   ['c', 'Toggle cleared on the selected row'],
   ['Delete', 'Delete the selected row (Undo for 5 seconds)'],
   ['u', 'Undo the last delete'],
+  ['r', 'Receipts of the selected row: view, add, delete'],
   ['Tab / Shift+Tab', 'Next / previous field; Tab picks a highlighted suggestion'],
   ['Date: t + - 15 3/15', 'Today, next / previous day, a day this month, a date this year'],
   ['Amounts: 12.50+3.25', 'Simple math, rounded to cents'],

@@ -24,6 +24,7 @@ from app.schemas.transaction import (
     TransferCreate,
 )
 from app.services import accounts as accounts_service
+from app.services import attachments as attachments_service
 from app.services import balances as balances_service
 from app.services import ledger as ledger_service
 from app.services import subscriptions as subscriptions_service
@@ -32,15 +33,19 @@ from app.services import transactions as service
 router = APIRouter(tags=["transactions"])
 
 
-def _out(transaction: Transaction, partners: dict[int, int]) -> TransactionOut:
+def _out(
+    transaction: Transaction, partners: dict[int, int], attached: dict[int, int] | None = None
+) -> TransactionOut:
     out = TransactionOut.model_validate(transaction)
     out.transfer_account_id = partners.get(transaction.id)
+    out.attachment_count = (attached or {}).get(transaction.id, 0)
     return out
 
 
 def transaction_outs(db: DbSession, rows: list[Transaction]) -> list[TransactionOut]:
     partners = service.transfer_partner_accounts(db, rows)
-    return [_out(row, partners) for row in rows]
+    attached = attachments_service.counts(db, [row.id for row in rows])
+    return [_out(row, partners, attached) for row in rows]
 
 
 def _mutation(db: DbSession, result: service.TransactionResult) -> MutationOut:
@@ -94,10 +99,11 @@ def list_transactions(
     )
     page = ledger_service.query(db, filters, cursor=cursor, limit=limit)
     partners = service.transfer_partner_accounts(db, [row.transaction for row in page.rows])
+    attached = attachments_service.counts(db, [row.transaction.id for row in page.rows])
     return LedgerPageOut(
         items=[
             LedgerRowOut(
-                transaction=_out(row.transaction, partners),
+                transaction=_out(row.transaction, partners, attached),
                 running_balance_cents=row.running_balance_cents,
             )
             for row in page.rows

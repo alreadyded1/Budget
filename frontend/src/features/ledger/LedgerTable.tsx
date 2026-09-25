@@ -21,6 +21,8 @@ type Props = {
   onSelect: (id: number) => void
   onOpen: (id: number) => void
   onToggleCleared: (id: number) => void
+  /** Open the receipts of a row (the paperclip). */
+  onReceipts?: (id: number) => void
   hasMore: boolean
   loadingMore: boolean
   onLoadMore: () => void
@@ -45,6 +47,7 @@ export function LedgerTable({
   onSelect,
   onOpen,
   onToggleCleared,
+  onReceipts,
   hasMore,
   loadingMore,
   onLoadMore,
@@ -185,7 +188,29 @@ export function LedgerTable({
                   <div className="tabular-nums">{tx.date}</div>
                   <div className="truncate">{payee}</div>
                   <div className="truncate">{category}</div>
-                  <div className="truncate text-slate-500">{tx.memo}</div>
+                  <div className="flex min-w-0 items-center gap-1 text-slate-500">
+                    <span className="truncate">{tx.memo}</span>
+                    {((tx.attachment_count ?? 0) > 0 || (selected && tx.id > 0)) && (
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        aria-label={
+                          (tx.attachment_count ?? 0) > 0
+                            ? `${tx.attachment_count} receipt${tx.attachment_count === 1 ? '' : 's'}`
+                            : 'Add a receipt'
+                        }
+                        title="Receipts (r)"
+                        data-testid="paperclip"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onReceipts?.(tx.id)
+                        }}
+                        className={`ml-auto shrink-0 rounded px-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 ${(tx.attachment_count ?? 0) > 0 ? 'text-slate-600 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600'}`}
+                      >
+                        <PaperclipIcon />
+                      </button>
+                    )}
+                  </div>
                   <div className="text-right tabular-nums">
                     {tx.amount_cents < 0 ? formatCents(-tx.amount_cents) : ''}
                   </div>
@@ -245,6 +270,21 @@ function LockIcon() {
       <path
         fill="currentColor"
         d="M8 1a3.5 3.5 0 0 0-3.5 3.5V6H4a1.5 1.5 0 0 0-1.5 1.5v6A1.5 1.5 0 0 0 4 15h8a1.5 1.5 0 0 0 1.5-1.5v-6A1.5 1.5 0 0 0 12 6h-.5V4.5A3.5 3.5 0 0 0 8 1Zm2 5H6V4.5a2 2 0 1 1 4 0V6Z"
+      />
+    </svg>
+  )
+}
+
+/** Receipts attached (SPEC §15). */
+function PaperclipIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        d="M10.5 4.5 5.8 9.2a1.3 1.3 0 0 0 1.9 1.9l5-5a2.6 2.6 0 0 0-3.7-3.7l-5 5a4 4 0 0 0 5.6 5.6l4.4-4.4"
       />
     </svg>
   )
