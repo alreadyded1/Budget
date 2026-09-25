@@ -168,12 +168,15 @@ export function LedgerTable({
             }
             const tx = row.transaction
             if (tx.id === editingId) {
+              // Each row's transform makes it its own stacking context, so the editor's open
+              // dropdowns would sit under the rows after it. Lift the whole row above them.
               return (
                 <div
                   key={item.key}
                   ref={virtualizer.measureElement}
                   data-index={item.index}
-                  style={style}
+                  style={{ ...style, zIndex: 10 }}
+                  data-testid="editing-row"
                 >
                   <div role="row">
                     <div role="gridcell">{renderEditor()}</div>

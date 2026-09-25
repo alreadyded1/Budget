@@ -13,7 +13,7 @@ const NAV = [
   { to: '/debt', label: 'Debt payoff' },
   { to: '/transactions', label: 'Transactions' },
   { to: '/accounts', label: 'Accounts' },
-  { to: '/subscriptions', label: 'Subscriptions' },
+  { to: '/subscriptions', label: 'Bills & Recurring' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/reports', label: 'Reports' },
   { to: '/payees', label: 'Payees' },

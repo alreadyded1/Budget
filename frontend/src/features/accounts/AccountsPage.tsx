@@ -12,6 +12,7 @@ import { useToast } from '../../components/toastContext'
 import { DebtFields } from './DebtFields'
 import { LowBalanceField } from './LowBalanceField'
 import { ValuationPanel } from './ValuationPanel'
+import { parseApr } from '../../lib/apr'
 import { formatCents, parseAmountToCents } from '../../lib/money'
 
 const inputClass =
@@ -30,6 +31,9 @@ const TYPES: { value: AccountType; label: string }[] = [
 ]
 
 const TYPE_LABEL = Object.fromEntries(TYPES.map((type) => [type.value, type.label]))
+
+/** Debts the payoff planner reads an APR and minimum payment for (SPEC §3, §14). */
+const DEBT_TYPES = new Set<AccountType>(['credit_card', 'loan', 'mortgage', 'other_liability'])
 
 /** Types that can be valued by hand instead of by their transactions (SPEC §3). */
 const MANUAL_TYPES = new Set<AccountType>(['investment', 'other_asset', 'other_liability'])
@@ -52,6 +56,8 @@ export function AccountsPage() {
   const [type, setType] = useState<AccountType>('checking')
   const [opening, setOpening] = useState('')
   const [manual, setManual] = useState(false)
+  const [apr, setApr] = useState('')
+  const [minPayment, setMinPayment] = useState('')
   const [valuing, setValuing] = useState<number | null>(null)
   const [showClosed, setShowClosed] = useState(false)
 
@@ -65,6 +71,8 @@ export function AccountsPage() {
     onSuccess: (account) => {
       setName('')
       setOpening('')
+      setApr('')
+      setMinPayment('')
       invalidate()
       toast(`${account.name} added.`, 'success')
     },
@@ -102,11 +110,25 @@ export function AccountsPage() {
       toast('That opening balance is not an amount.')
       return
     }
+    const valuation = manual && MANUAL_TYPES.has(type) ? 'manual' : 'transactions'
+    const debt = DEBT_TYPES.has(type) && valuation === 'transactions'
+    const aprBps = debt ? parseApr(apr) : null
+    if (aprBps === undefined) {
+      toast('Type the APR as a percent, e.g. 19.99.')
+      return
+    }
+    const minTyped = debt && minPayment.trim() !== ''
+    const minCents = minTyped ? parseAmountToCents(minPayment) : null
+    if (minTyped && (minCents === null || minCents < 0)) {
+      toast('That minimum payment is not an amount.')
+      return
+    }
     add.mutate({
       name,
       type,
       opening_balance_cents: cents,
-      valuation_mode: manual && MANUAL_TYPES.has(type) ? 'manual' : 'transactions',
+      valuation_mode: valuation,
+      ...(debt ? { apr_bps: aprBps, min_payment_cents: minCents } : {}),
     })
   }
 
@@ -237,6 +259,29 @@ export function AccountsPage() {
             />
             I will type its value in by hand (a house, a car, a brokerage account)
           </label>
+        )}
+        {DEBT_TYPES.has(type) && !(manual && MANUAL_TYPES.has(type)) && (
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            <input
+              aria-label="APR"
+              placeholder="APR %, e.g. 19.99"
+              inputMode="decimal"
+              value={apr}
+              onChange={(event) => setApr(event.target.value)}
+              className={inputClass}
+            />
+            <input
+              aria-label="Minimum payment"
+              placeholder="Minimum payment"
+              inputMode="decimal"
+              value={minPayment}
+              onChange={(event) => setMinPayment(event.target.value)}
+              className={inputClass}
+            />
+            <p className="self-center text-xs text-slate-500">
+              For the debt payoff plan. Optional; you can add them later.
+            </p>
+          </div>
         )}
         <button
           type="submit"

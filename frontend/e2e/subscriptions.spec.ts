@@ -14,7 +14,7 @@ async function signIn(page: Page) {
   await page.keyboard.press('Tab')
   await page.keyboard.type('e2e-password-123')
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('link', { name: 'Subscriptions' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Bills & Recurring' })).toBeVisible()
 }
 
 function iso(date: Date): string {
@@ -58,7 +58,7 @@ test('a bill from subscription to calendar to payment to plan', async ({ page })
   })
 
   // Add it from the keyboard.
-  await page.getByRole('button', { name: 'Add subscription' }).focus()
+  await page.getByRole('button', { name: 'Add bill' }).focus()
   await page.keyboard.press('Enter')
   const form = page.getByTestId('subscription-form')
   await expect(form.getByLabel('Name')).toBeFocused()

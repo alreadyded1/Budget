@@ -1,8 +1,8 @@
 # Progress
 
 **Current phase:** All 16 phases are built. Every "Done when" box in BUILD_PLAN is ticked.
-**Next step:** None planned. Pick from the parking lot below, or start a new spec for anything beyond
-BUILD_PLAN. Deploy with `update.sh` (it runs migration 0014).
+**Next step:** None planned. New repairs go in the repair list below; bigger ideas in the parking lot.
+Deploy with `update.sh`.
 
 ## Phase status
 | # | Phase | Status | Finished |
@@ -35,6 +35,22 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-25 — Repairs (from using the app)
+- **Done:**
+  1. The "Add account" form asks for APR and minimum payment when the type is a debt (credit card,
+     loan, mortgage, other liability valued by its transactions). Both optional; sent with the create.
+  2. "Subscriptions" reads "Bills & Recurring" everywhere in the UI (nav, page, report tab, planner hint,
+     calendar and dashboard links, payee merge text), and the two API messages say "bill" (D-114).
+  3. The dropdowns in a ledger row being edited no longer sit under the rows below it: the edited row
+     gets a z-index above its siblings (each virtualized row's transform is its own stacking context).
+- **Tests:** 547 backend, 195 frontend (+3: the add form sends APR and minimum for debts only and
+  refuses a bad APR), 15 E2E (the ledger search spec now checks the open category list is the topmost
+  element over the rows below; it failed before the fix).
+- **Deviations from plan:** none. URLs, API routes and names, and the "Subscriptions" spending category
+  are unchanged, as agreed.
+- **Known issues:** none new.
+- **Next step:** none planned.
 
 ### 2026-09-25 — Phase 16b (Hardening)
 - **Done:**
@@ -669,6 +685,10 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
   - `pytest` ignores one upstream DeprecationWarning from starlette's use of `anyio.abc.BlockingPortal`;
     remove the filter in `backend/pyproject.toml` once starlette fixes it.
 - **Next step:** Plan Phase 1 (auth, users, settings).
+
+## Repair list
+<!-- Fixes found while using the finished app. Next session works through these. -->
+- Empty. The first three repairs are done (see the 2026-09-25 repairs entry).
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->

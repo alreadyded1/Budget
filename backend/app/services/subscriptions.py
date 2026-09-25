@@ -84,7 +84,7 @@ def list_subscriptions(db: DbSession) -> list[Subscription]:
 def get_subscription(db: DbSession, subscription_id: int) -> Subscription:
     subscription = db.get(Subscription, subscription_id)
     if subscription is None:
-        raise AppError(404, "Subscription not found", "subscription_not_found")
+        raise AppError(404, "Bill not found", "subscription_not_found")
     return subscription
 
 
@@ -120,7 +120,7 @@ def last_price_change(subscription: Subscription) -> PriceChange:
 
 def _validate(db: DbSession, subscription: Subscription) -> None:
     if not (subscription.name or "").strip():
-        raise AppError(422, "A subscription needs a name.", "name_required")
+        raise AppError(422, "A bill needs a name.", "name_required")
     if subscription.amount_cents is None or subscription.amount_cents <= 0:
         raise AppError(422, "The amount must be more than zero.", "invalid_amount")
     if subscription.frequency != "custom":
