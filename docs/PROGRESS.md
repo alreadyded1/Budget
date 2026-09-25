@@ -1,7 +1,7 @@
 # Progress
 
 **Current phase:** All 16 phases are built. Every "Done when" box in BUILD_PLAN is ticked.
-**Next step:** The repair list below. New repairs go there; bigger ideas in the parking lot.
+**Next step:** None planned. New repairs go in the repair list below; bigger ideas in the parking lot.
 Deploy with `update.sh`.
 
 ## Phase status
@@ -35,6 +35,19 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Known issues:**
 - **Next step:**
 -->
+
+### 2026-09-25 — Repair: the date picker that stayed open (Safari on macOS)
+- **Done:** every date field's ▾ now opens the app's own calendar instead of the browser's native
+  picker (D-115). Picking a day (or Today) fills the field and closes it; ✓ Done, Esc, a click or Tab
+  away, or a second click on ▾ close it too. Keyboard: Alt+↓ in the field opens it; arrows move a
+  day or week, Page Up / Page Down a month (Jan 31 → Feb 28), Home / End the week's ends, Enter picks.
+  Its keys never reach the ledger row, so Enter and Esc inside it don't save or cancel the row.
+  Typed dates and the `t` / `+` / `-` shortcuts are unchanged.
+- **Tests:** 202 frontend (+7 for the calendar), 15 E2E (the ledger search spec picks a date in the
+  entry row, checks the calendar is on top and closes, and runs axe on it), 547 backend.
+- **Known issues:** WebKit (Safari's engine) isn't available in the build environment, so the fix
+  was checked in Chromium and jsdom. It no longer relies on Safari's picker, which was the cause.
+- **Next step:** none planned.
 
 ### 2026-09-25 — Repairs (from using the app)
 - **Done:**
@@ -688,14 +701,7 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 
 ## Repair list
 <!-- Fixes found while using the finished app. Next session works through these. -->
-1. **The date picker stays open after picking a day; give it a Done (✓) and make it close.** The ▾
-   button on every date field (ledger entry and edit rows, filters, forms) opens the browser's own
-   picker through a hidden `<input type="date">` (`frontend/src/components/DateInput.tsx`). Some
-   browsers, Safari on macOS in particular, keep that native popover open after a day is chosen, and
-   the app has no way to close it. Suggested fix: replace the native picker with a small in-app
-   calendar popover that closes when a day is picked, has a Done button, closes on Esc and on a click
-   outside, and works from the keyboard (arrows move the day, Enter picks). The typed-date shortcuts
-   stay as they are. Question: which browser and device showed it (the screenshot looks like macOS)?
+- Empty. Everything reported so far is fixed (see the 2026-09-25 repairs entries).
 
 ## Parking lot
 <!-- Ideas or work found mid-phase that belongs to a later phase. -->

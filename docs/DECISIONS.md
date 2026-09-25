@@ -729,3 +729,9 @@ The Subscriptions feature is called "Bills & Recurring" on screen (one item is "
 exports and scripts keep working. The starter spending category "Subscriptions" (under Personal) keeps
 its name: it is where streaming and similar costs are categorised, not the list of scheduled bills.
 
+## D-115 Date fields use the app's own calendar, not the browser's
+The ▾ button used to open the native picker of a hidden `<input type="date">`. Safari on macOS keeps
+that popover open after a day is chosen, and a page cannot close it. `DatePicker` is a small calendar
+popover in the app (built on the bill calendar's month-grid helpers, no new dependency): it closes on
+pick, Done, Esc and focus leaving, looks the same in every browser, and follows the keyboard rules.
+
