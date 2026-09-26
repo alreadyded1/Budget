@@ -742,3 +742,13 @@ minus sign can't flip it) and shows its balance as owed or in credit. Ledger row
 keep showing signed amounts, as a bank statement does. Opening balance and date can be corrected on
 the Accounts page, since a wrong sign otherwise hides the debt from net worth and the payoff plan.
 
+## D-117 Payments match a bill from 14 days early to 5 days late (confirmed with the user, 2026-09-26)
+Replaces D-064's ±3 days. Paying a week or two ahead is common, and the old window missed it: the
+save and import screens offered no link, and an auto-post bill was posted a second time on its due
+date. The window is `[due − 14, due + 5]`, but its start never reaches the previous due date, so a
+weekly bill can't claim last week's payment. When several unpaid bills fit, the oldest wins, then the
+closest amount. Payee and amount rules are unchanged (same payee; within 10% or $1). One function,
+`subscriptions.matching_bills`, serves the save suggestion and import review; the daily job uses the
+same `match_window`. Import duplicate detection (manual entry vs imported row, ±3 days) is a
+different rule and is unchanged.
+

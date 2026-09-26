@@ -149,7 +149,8 @@ same tab behavior and a live remaining amount. A transfer is chosen by typing th
   Totals show the monthly equivalent and annual cost, with a breakdown by category.
 - **Price history**: changing the amount records the old amount and date. Items with increases get a badge.
 - **Occurrences**: each due date is tracked as upcoming, paid, or skipped. Saving a transaction with the same
-  payee, a similar amount, and a date within ±3 days suggests linking it as payment.
+  payee, a similar amount, and a date from 14 days before to 5 days after the due date (never back past
+  the previous due date) suggests linking it as payment; the oldest unpaid bill wins.
 - "Mark paid" opens the entry row prefilled with the bill's details.
 - **Bill calendar**: a month grid showing bills on their due dates, colored paid / upcoming / overdue, with
   **pay dates marked**. Phones get a list view. Clicking a bill shows details and the Mark paid action.

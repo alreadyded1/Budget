@@ -80,7 +80,12 @@ def _existing_payment(
     """A payment already entered by hand for this bill, not yet linked to any bill (D-067)."""
     if subscription.payee_id is None:
         return None
-    window = timedelta(days=bill_math.MATCH_DAYS)
+    start, end = bill_math.match_window(
+        occurrence.due_date,
+        bill_math.previous_due(
+            subscriptions_service.schedule_of(subscription), occurrence.due_date
+        ),
+    )
     linked = select(SubscriptionOccurrence.transaction_id).where(
         SubscriptionOccurrence.transaction_id.is_not(None)
     )
@@ -89,8 +94,8 @@ def _existing_payment(
             Transaction.payee_id == subscription.payee_id,
             Transaction.transfer_id.is_(None),
             Transaction.amount_cents < 0,
-            Transaction.date >= occurrence.due_date - window,
-            Transaction.date <= occurrence.due_date + window,
+            Transaction.date >= start,
+            Transaction.date <= end,
             Transaction.id.not_in(linked),
         )
     ).all()

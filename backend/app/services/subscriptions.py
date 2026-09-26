@@ -334,6 +334,53 @@ def reopen(db: DbSession, occurrence_id: int) -> SubscriptionOccurrence:
     return occurrence
 
 
+def matching_bills(
+    db: DbSession,
+    payee_id: int | None,
+    paid_on: date,
+    paid_cents: int,
+    exclude: set[int] | frozenset[int] = frozenset(),
+) -> list[SubscriptionOccurrence]:
+    """Unpaid bills a payment could be for, best first (D-064, D-117).
+
+    Same payee, amount within 10% or $1, paid from 14 days before the due date (never back
+    past the previous due date) to 5 days after. The oldest bill comes first, so a payment
+    settles an overdue bill before the next one; then the closest amount.
+    """
+    if payee_id is None or paid_cents >= 0:
+        return []
+    first, last = math.due_range_for(paid_on)
+    rows = db.scalars(
+        select(SubscriptionOccurrence)
+        .join(Subscription, Subscription.id == SubscriptionOccurrence.subscription_id)
+        .options(selectinload(SubscriptionOccurrence.subscription))
+        .where(
+            Subscription.payee_id == payee_id,
+            SubscriptionOccurrence.status == "upcoming",
+            SubscriptionOccurrence.due_date >= first,
+            SubscriptionOccurrence.due_date <= last,
+        )
+    ).all()
+    found = [
+        row
+        for row in rows
+        if row.id not in exclude
+        and math.is_match(
+            bill_payee_id=row.subscription.payee_id,
+            bill_cents=row.amount_cents,
+            due=row.due_date,
+            payee_id=payee_id,
+            paid_cents=paid_cents,
+            paid_on=paid_on,
+            previous=math.previous_due(schedule_of(row.subscription), row.due_date),
+        )
+    ]
+    return sorted(
+        found,
+        key=lambda row: (row.due_date, abs(row.amount_cents + paid_cents), row.id),
+    )
+
+
 def best_match(db: DbSession, transaction: Transaction) -> Bill | None:
     """The unpaid bill this transaction most plausibly pays, if any (D-064)."""
     if transaction.payee_id is None or transaction.is_transfer or transaction.amount_cents >= 0:
@@ -345,39 +392,10 @@ def best_match(db: DbSession, transaction: Transaction) -> Bill | None:
     ).first()
     if already is not None:
         return None
-    window = timedelta(days=math.MATCH_DAYS)
-    rows = db.scalars(
-        select(SubscriptionOccurrence)
-        .join(Subscription, Subscription.id == SubscriptionOccurrence.subscription_id)
-        .options(selectinload(SubscriptionOccurrence.subscription))
-        .where(
-            Subscription.payee_id == transaction.payee_id,
-            SubscriptionOccurrence.status == "upcoming",
-            SubscriptionOccurrence.due_date >= transaction.date - window,
-            SubscriptionOccurrence.due_date <= transaction.date + window,
-        )
-    ).all()
-    candidates = [
-        row
-        for row in rows
-        if math.is_match(
-            bill_payee_id=row.subscription.payee_id,
-            bill_cents=row.amount_cents,
-            due=row.due_date,
-            payee_id=transaction.payee_id,
-            paid_cents=transaction.amount_cents,
-            paid_on=transaction.date,
-        )
-    ]
-    if not candidates:
+    found = matching_bills(db, transaction.payee_id, transaction.date, transaction.amount_cents)
+    if not found:
         return None
-    best = min(
-        candidates,
-        key=lambda row: (
-            abs((row.due_date - transaction.date).days),
-            abs(row.amount_cents + transaction.amount_cents),
-        ),
-    )
+    best = found[0]
     return Bill(occurrence=best, subscription=best.subscription, overdue=False)
 
 

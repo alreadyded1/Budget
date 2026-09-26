@@ -278,9 +278,70 @@ class TestPayments:
         # A suggestion only: nothing is linked until asked.
         assert bills_for(auth_client, sub["id"])[0]["status"] == "upcoming"
 
+    def test_a_payment_well_ahead_of_the_due_date_is_suggested(self, auth_client, refs):
+        # D-117: up to 14 days early. Due in 10 days, paid today.
+        due = TODAY + timedelta(days=10)
+        sub = netflix(auth_client, refs, anchor_date=due.isoformat())
+        body = post(
+            auth_client,
+            TX,
+            {
+                "account_id": refs["account"]["id"],
+                "date": TODAY.isoformat(),
+                "amount_cents": -1599,
+                "payee_id": refs["netflix"]["id"],
+            },
+        )
+        assert (
+            body["bill_match"]["occurrence_id"]
+            == bills_for(auth_client, sub["id"])[0]["occurrence_id"]
+        )
+        assert body["bill_match"]["due_date"] == due.isoformat()
+
+    def test_the_oldest_unpaid_bill_comes_first(self, auth_client, refs):
+        # A weekly bill: a payment three days after one due date is also four days before
+        # the next. It settles the older one.
+        sub = netflix(auth_client, refs, frequency="weekly")
+        bills = bills_for(auth_client, sub["id"])
+        body = post(
+            auth_client,
+            TX,
+            {
+                "account_id": refs["account"]["id"],
+                "date": (TODAY + timedelta(days=3)).isoformat(),
+                "amount_cents": -1599,
+                "payee_id": refs["netflix"]["id"],
+            },
+        )
+        assert body["bill_match"]["occurrence_id"] == bills[0]["occurrence_id"]
+
+    def test_a_weekly_bill_never_takes_last_weeks_payment_early(self, auth_client, refs):
+        sub = netflix(auth_client, refs, frequency="weekly")
+        bills = bills_for(auth_client, sub["id"])
+        post(auth_client, f"{BILLS}/{bills[0]['occurrence_id']}/skip")
+        # Paid on the first due date: too early for next week's bill, whose window starts
+        # the day after.
+        body = post(
+            auth_client,
+            TX,
+            {
+                "account_id": refs["account"]["id"],
+                "date": TODAY.isoformat(),
+                "amount_cents": -1599,
+                "payee_id": refs["netflix"]["id"],
+            },
+        )
+        assert body["bill_match"] is None
+
     @pytest.mark.parametrize(
         ("days", "cents", "same_payee"),
-        [(4, -1599, True), (0, -2000, True), (0, -1599, False), (0, 1599, True)],
+        [
+            (6, -1599, True),
+            (-15, -1599, True),
+            (0, -2000, True),
+            (0, -1599, False),
+            (0, 1599, True),
+        ],
     )
     def test_no_suggestion_when_it_does_not_fit(self, auth_client, refs, days, cents, same_payee):
         netflix(auth_client, refs)

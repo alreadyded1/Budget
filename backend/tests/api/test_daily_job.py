@@ -131,6 +131,31 @@ class TestAutoPost:
         ).one()
         assert occurrence.transaction_id == manual["id"]
 
+    def test_a_payment_made_a_week_early_is_linked_not_posted_again(
+        self, auth_client, db, refs, ntfy_on
+    ):
+        # D-117: paid eight days ahead, so the old ±3-day rule posted the bill a second time.
+        subscription(auth_client, refs)
+        early = post(
+            auth_client,
+            "/api/v1/transactions",
+            {
+                "account_id": refs["account"]["id"],
+                "date": (TODAY - timedelta(days=8)).isoformat(),
+                "amount_cents": -1599,
+                "payee_id": refs["payee"]["id"],
+            },
+        )["transactions"][0]
+
+        report = run_daily(db, now=MORNING, sender=ntfy.Recorder())
+
+        assert report.linked == ["Netflix $15.99"] and report.posted == []
+        assert count(db, Transaction) == 1
+        occurrence = db.scalars(
+            select(SubscriptionOccurrence).where(SubscriptionOccurrence.due_date == TODAY)
+        ).one()
+        assert occurrence.transaction_id == early["id"]
+
     def test_without_an_account_it_asks_you_to_pay_by_hand(self, auth_client, db, refs, ntfy_on):
         subscription(auth_client, refs, account_id=None)
         recorder = ntfy.Recorder()
