@@ -92,6 +92,36 @@ describe('the date field calendar (repair list: it stayed open in Safari)', () =
     expect(picker()).toBeNull()
   })
 
+  it('changes month in Safari, where a clicked button gets no focus (repair)', async () => {
+    render(<Field />)
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Open calendar' }))
+    })
+    const next = screen.getByRole('button', { name: 'Next month' })
+    // Safari: mousedown on a button leaves focus nowhere, so the day button blurs to null.
+    const pressed = fireEvent.mouseDown(next)
+    expect(pressed).toBe(false) // default prevented: focus stays inside
+    fireEvent.blur(screen.getByRole('button', { name: '2026-01-31' }), { relatedTarget: null })
+    fireEvent.click(next)
+    expect(picker()).not.toBeNull()
+    expect(screen.getByRole('grid', { name: 'February 2026' })).toBeTruthy()
+  })
+
+  it('a click outside the field closes it, Tab away closes it', async () => {
+    const user = userEvent.setup()
+    render(<Field />)
+    await user.click(screen.getByRole('button', { name: 'Open calendar' }))
+    fireEvent.mouseDown(document.body)
+    expect(picker()).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Open calendar' }))
+    await user.tab() // day → Today
+    await user.tab() // → Done
+    expect(picker()).not.toBeNull()
+    await user.tab() // → out of the calendar
+    expect(picker()).toBeNull()
+  })
+
   it('Today picks today, and an empty field opens on this month', async () => {
     const user = userEvent.setup()
     render(<Field start="" />)

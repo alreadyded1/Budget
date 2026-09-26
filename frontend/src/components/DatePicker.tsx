@@ -18,7 +18,8 @@ type Props = {
   onPick: (iso: string) => void
   /** Esc or Done: close without picking, back to the field. */
   onClose: () => void
-  /** Focus went somewhere else (a click or Tab away): close and leave focus there. */
+  /** Focus moved to something outside (Tab away): close and leave focus there. Clicks outside
+   * are the field's job: Safari gives a clicked button no focus, so blur can't tell them. */
   onLeave: () => void
 }
 
@@ -95,8 +96,12 @@ export function DatePicker({ value, today, onPick, onClose, onLeave }: Props) {
       aria-label="Choose a date"
       data-testid="date-picker"
       onKeyDown={onKeyDown}
+      // A click inside never moves focus. Safari doesn't focus a clicked button, so without
+      // this the month arrows looked like focus leaving and closed the calendar.
+      onMouseDown={(event) => event.preventDefault()}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onLeave()
+        const next = event.relatedTarget as Node | null
+        if (next !== null && !event.currentTarget.contains(next)) onLeave()
       }}
       className={`absolute top-full z-40 mt-1 w-64 rounded border border-slate-200 bg-white p-2 text-slate-900 shadow-lg dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 ${
         alignRight ? 'right-0' : 'left-0'
