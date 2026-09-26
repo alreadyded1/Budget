@@ -36,6 +36,16 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Next step:**
 -->
 
+### 2026-09-26 — Change: bills match payments made up to 14 days early (D-117)
+- **Done:** a payment now matches an unpaid bill from 14 days before its due date to 5 days after
+  (was ±3), never reaching back past the previous due date; the oldest unpaid bill wins. Applies to
+  the "Link" suggestion when saving, the import review's "Pays <bill>", and the daily job, which now
+  links an early payment instead of auto-posting the bill a second time.
+- **Tests:** 555 backend (+8: early suggestion, oldest bill first, weekly bills never take last
+  week's payment, the daily job links a payment made 8 days early, window and previous-due math).
+- **Not built:** "Link existing…" and "Mark paid only" on the bill itself; offered, parked for now.
+- **Next step:** none planned.
+
 ### 2026-09-25 — Repair: debts are entered and shown as amounts owed
 - **Done** (D-116):
   - "Add account" labels the field **Amount owed** for a credit card, loan, mortgage or other
@@ -722,6 +732,7 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - A reconciliation report (statement vs. ledger per period), if wanted. Not built.
 - A thumbnail for PDFs (first page) would need poppler; not planned.
 - A "session list / sign out everywhere" screen was not asked for; note it if it ever comes up.
+- On a bill: "Link existing…" (pick a transaction to link) and "Mark paid only" (no ledger entry).
 - A bulk-edit screen in the ledger (select many rows, recategorize, clear, delete); the API has it.
 
 ## Known issues

@@ -10,8 +10,10 @@ from app.domain.subscriptions import (
     annual_cents,
     due_dates,
     is_match,
+    match_window,
     monthly_cents,
     next_due,
+    previous_due,
     schedule_problem,
 )
 
@@ -184,9 +186,33 @@ class TestMatching:
         assert is_match(**self.base, paid_cents=-1_699, paid_on=date(2026, 9, 18))
         assert is_match(**self.base, paid_cents=-1_499, paid_on=date(2026, 9, 12))
 
+    def test_up_to_fourteen_days_early_and_five_late(self):
+        # D-117: paying a week or two ahead is normal; late is a few days of processing.
+        assert is_match(**self.base, paid_cents=-1_599, paid_on=date(2026, 9, 7))
+        assert is_match(**self.base, paid_cents=-1_599, paid_on=date(2026, 9, 1))
+        assert is_match(**self.base, paid_cents=-1_599, paid_on=date(2026, 9, 20))
+
     def test_too_far_in_time(self):
-        assert not is_match(**self.base, paid_cents=-1_599, paid_on=date(2026, 9, 19))
-        assert not is_match(**self.base, paid_cents=-1_599, paid_on=date(2026, 9, 11))
+        assert not is_match(**self.base, paid_cents=-1_599, paid_on=date(2026, 8, 31))
+        assert not is_match(**self.base, paid_cents=-1_599, paid_on=date(2026, 9, 21))
+
+    def test_the_early_window_stops_at_the_previous_due_date(self):
+        previous = date(2026, 9, 8)  # a weekly bill
+        assert is_match(**self.base, paid_cents=-1_599, paid_on=date(2026, 9, 9), previous=previous)
+        assert not is_match(
+            **self.base, paid_cents=-1_599, paid_on=date(2026, 9, 8), previous=previous
+        )
+
+    def test_match_window_and_previous_due(self):
+        due = date(2026, 9, 15)
+        assert match_window(due) == (date(2026, 9, 1), date(2026, 9, 20))
+        assert match_window(due, date(2026, 8, 15)) == (date(2026, 9, 1), date(2026, 9, 20))
+        assert match_window(due, date(2026, 9, 8)) == (date(2026, 9, 9), date(2026, 9, 20))
+        weekly = BillSchedule("weekly", date(2026, 9, 1))
+        assert previous_due(weekly, date(2026, 9, 15)) == date(2026, 9, 8)
+        assert previous_due(weekly, date(2026, 9, 1)) is None  # the first one
+        monthly = BillSchedule("monthly", date(2026, 8, 15))
+        assert previous_due(monthly, date(2026, 9, 15)) is None  # a month back, outside 14 days
 
     def test_another_payee_or_none(self):
         assert not is_match(

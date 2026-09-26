@@ -15,9 +15,7 @@ from datetime import timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session as DbSession
-from sqlalchemy.orm import selectinload
 
-from app.domain import subscriptions as bill_math
 from app.domain.imports import ParsedRow, csv_profile, keys, ofx
 from app.domain.imports import rules as rule_math
 from app.errors import AppError
@@ -26,7 +24,6 @@ from app.models import (
     ImportProfile,
     ImportStagedRow,
     Payee,
-    Subscription,
     SubscriptionOccurrence,
     Transaction,
     utcnow,
@@ -37,6 +34,7 @@ from app.services import categories as categories_service
 from app.services import payees as payees_service
 from app.services import references
 from app.services import rules as rules_service
+from app.services import subscriptions as subscriptions_service
 from app.services import transactions as transactions_service
 
 #: SPEC §11: a manual entry within this many days, for the exact amount, is a match.
@@ -207,29 +205,11 @@ def _manual_match(
 
 
 def _bill_for(db: DbSession, payee_id: int | None, row: ParsedRow, taken: set[int]):
-    """An unpaid bill this row looks like the payment for (D-064, D-076)."""
-    if payee_id is None or row.amount_cents >= 0:
-        return None
-    window = timedelta(days=bill_math.MATCH_DAYS)
-    rows = db.scalars(
-        select(SubscriptionOccurrence)
-        .join(Subscription, Subscription.id == SubscriptionOccurrence.subscription_id)
-        .options(selectinload(SubscriptionOccurrence.subscription))
-        .where(
-            Subscription.payee_id == payee_id,
-            SubscriptionOccurrence.status == "upcoming",
-            SubscriptionOccurrence.due_date >= row.date - window,
-            SubscriptionOccurrence.due_date <= row.date + window,
-        )
-    ).all()
-    fits = [
-        occ
-        for occ in rows
-        if occ.id not in taken and bill_math.amounts_match(occ.amount_cents, row.amount_cents)
-    ]
-    if not fits:
-        return None
-    return min(fits, key=lambda occ: abs((occ.due_date - row.date).days))
+    """An unpaid bill this row looks like the payment for (D-064, D-076, D-117)."""
+    found = subscriptions_service.matching_bills(
+        db, payee_id, row.date, row.amount_cents, exclude=taken
+    )
+    return found[0] if found else None
 
 
 def _suggest(

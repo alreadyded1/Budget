@@ -30,7 +30,9 @@ _STEPS: dict[str, tuple[str, int]] = {
 _PER_YEAR = {"day": 365, "week": 52, "month": 12}
 
 #: Payment matching (D-064): ±3 days, and within 10% or $1.00, whichever is larger.
-MATCH_DAYS = 3
+#: A payment can come this many days before a bill's due date, or this many after (D-117).
+MATCH_EARLY_DAYS = 14
+MATCH_LATE_DAYS = 5
 MATCH_MIN_CENTS = 100
 MATCH_SHARE = Fraction(1, 10)
 
@@ -138,6 +140,32 @@ def amounts_match(bill_cents: int, paid_cents: int) -> bool:
     return abs(abs(paid_cents) - abs(bill_cents)) <= tolerance
 
 
+def previous_due(schedule: BillSchedule, due: date) -> date | None:
+    """The due date before `due`, if it falls inside the early window (else None)."""
+    earlier = due_dates(schedule, due - timedelta(days=MATCH_EARLY_DAYS), due - timedelta(days=1))
+    return earlier[-1] if earlier else None
+
+
+def match_window(due: date, previous: date | None = None) -> tuple[date, date]:
+    """The payment dates that can pay a bill due on `due`, inclusive (D-117).
+
+    Up to 14 days early and 5 days late, but never back to the previous due date, so a
+    weekly bill's window can't reach last week's bill.
+    """
+    start = due - timedelta(days=MATCH_EARLY_DAYS)
+    if previous is not None and previous >= start:
+        start = previous + timedelta(days=1)
+    return start, due + timedelta(days=MATCH_LATE_DAYS)
+
+
+def due_range_for(paid_on: date) -> tuple[date, date]:
+    """Every due date whose window could hold a payment on `paid_on`, for a first query."""
+    return (
+        paid_on - timedelta(days=MATCH_LATE_DAYS),
+        paid_on + timedelta(days=MATCH_EARLY_DAYS),
+    )
+
+
 def is_match(
     *,
     bill_payee_id: int | None,
@@ -146,10 +174,12 @@ def is_match(
     payee_id: int | None,
     paid_cents: int,
     paid_on: date,
+    previous: date | None = None,
 ) -> bool:
-    """Would a transaction plausibly be this bill's payment? (SPEC §9, D-064)"""
+    """Would a transaction plausibly be this bill's payment? (SPEC §9, D-064, D-117)"""
     if bill_payee_id is None or payee_id != bill_payee_id:
         return False
-    if abs((paid_on - due).days) > MATCH_DAYS:
+    start, end = match_window(due, previous)
+    if not start <= paid_on <= end:
         return False
     return amounts_match(bill_cents, paid_cents)
