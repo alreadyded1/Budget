@@ -734,6 +734,9 @@ The ▾ button used to open the native picker of a hidden `<input type="date">`.
 that popover open after a day is chosen, and a page cannot close it. `DatePicker` is a small calendar
 popover in the app (built on the bill calendar's month-grid helpers, no new dependency): it closes on
 pick, Done, Esc and focus leaving, looks the same in every browser, and follows the keyboard rules.
+Update 2026-09-26: Safari gives a clicked button no focus, so "focus leaving" can't detect clicks.
+Clicks inside keep focus where it is (mousedown default prevented); a document mousedown listener
+closes it on a click outside the field; blur only closes it when focus moves to an outside element.
 
 ## D-116 Debts are typed and shown as "owed"; storage keeps the sign convention
 Liability balances stay negative in the database and API (CLAUDE.md). Only the Accounts screens

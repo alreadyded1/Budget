@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { KeyboardEvent, Ref } from 'react'
 
@@ -44,6 +44,16 @@ export function DateInput({
     flushSync(() => onChange(next))
     input.select()
   }
+
+  // A click anywhere outside the field and its calendar closes the calendar.
+  useEffect(() => {
+    if (!open) return
+    function onPointer(event: MouseEvent) {
+      if (!wrapper.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointer)
+    return () => document.removeEventListener('mousedown', onPointer)
+  }, [open])
 
   function closePicker() {
     setOpen(false)

@@ -36,6 +36,16 @@ Status key: ⬜ not started · 🟨 in progress · ✅ done
 - **Next step:**
 -->
 
+### 2026-09-26 — Repair: the calendar closed when changing month (Safari)
+- **Cause:** Safari doesn't give a clicked button focus. The calendar closed whenever focus left it,
+  so a click on ‹ / › looked like leaving and shut it (Chromium focuses the button, so tests passed).
+- **Done:** a mousedown inside the calendar no longer moves focus; a click outside the date field is
+  caught by a document listener instead of blur; blur closes only when focus lands on something
+  outside (Tab away). D-115 updated.
+- **Tests:** 209 frontend (+2, both fail on the old code: a Safari-style click on "Next month", and
+  closing on outside click / Tab away), 555 backend, 15 E2E.
+- **Next step:** none planned.
+
 ### 2026-09-26 — Change: bills match payments made up to 14 days early (D-117)
 - **Done:** a payment now matches an unpaid bill from 14 days before its due date to 5 days after
   (was ±3), never reaching back past the previous due date; the oldest unpaid bill wins. Applies to
